@@ -26,7 +26,29 @@ From the [Releases](../../releases) page:
 - `Sonda-<version>-portable.zip` — unzip and run `Sonda.exe`; it installs nothing and writes nothing to the registry;
 - `Sonda-<version>-Setup.exe` — installer (per-user, no administrator prompt).
 
-The binaries are not code-signed: on first run SmartScreen may warn about an "unknown publisher" → *More info → Run anyway*.
+The binaries are not code-signed — see [below](#windows-protected-your-pc--is-it-safe) for why, and how to verify them yourself.
+
+## "Windows protected your PC" — is it safe?
+
+Sonda is not code-signed: a code signing certificate costs a few hundred euros a year, which
+an unpaid side project does not have. Windows SmartScreen therefore warns about an *unknown
+publisher* the first time you run it. The warning means "we have never seen this file before",
+not "this file is malicious".
+
+You do not have to take my word for it. Every release is built by GitHub Actions from the
+public source in this repository, and the executable carries a **build provenance attestation**
+you can verify yourself:
+
+```powershell
+gh attestation verify Sonda.exe --repo seremanuels-create/sonda
+```
+
+That command proves the binary was produced by this repository's workflow, from a specific
+commit — something a hand-made copy cannot fake. `SHA256SUMS.txt` in the release lets you check
+the download is intact. And if you would rather trust nothing at all: the whole thing builds
+with `.\build.ps1` in about a minute.
+
+To run it past the warning: *More info → Run anyway*.
 
 ## What it shows
 

@@ -26,7 +26,29 @@ Nella pagina [Releases](../../releases):
 - `Sonda-<versione>-portable.zip` — estrai ed esegui `Sonda.exe`, non installa nulla e non scrive nel registro;
 - `Sonda-<versione>-Setup.exe` — installer (per utente, senza richiesta di amministratore).
 
-I binari non sono firmati: al primo avvio SmartScreen può avvisare ("editore sconosciuto") → *Ulteriori informazioni → Esegui comunque*.
+I binari non sono firmati — [qui sotto](#windows-ha-protetto-il-pc--è-sicuro) c'è il perché, e come verificarli da soli.
+
+## "Windows ha protetto il PC" — è sicuro?
+
+Sonda non è firmato: un certificato di firma del codice costa qualche centinaio di euro l'anno,
+che un progetto senza scopo di lucro non ha. Al primo avvio SmartScreen avvisa quindi di un
+*editore sconosciuto*. Quell'avviso significa "questo file non l'ho mai visto prima", non
+"questo file è pericoloso".
+
+Non serve fidarsi sulla parola. Ogni versione è compilata da GitHub Actions a partire dal
+codice pubblico di questa repository, e l'eseguibile porta con sé un'**attestazione di
+provenienza** verificabile:
+
+```powershell
+gh attestation verify Sonda.exe --repo seremanuels-create/sonda
+```
+
+Quel comando dimostra che il binario è stato prodotto dal workflow di questa repository, da un
+commit preciso: una copia fatta a mano non può fingerlo. Il file `SHA256SUMS.txt` della release
+serve a controllare che il download sia integro. E se preferisci non fidarti di niente: si
+compila da sé con `.\build.ps1` in circa un minuto.
+
+Per avviarlo nonostante l'avviso: *Ulteriori informazioni → Esegui comunque*.
 
 ## Cosa mostra
 
