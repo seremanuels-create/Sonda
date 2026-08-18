@@ -58,6 +58,8 @@ if (-not $SoloInstaller) {
     # tieni solo l'exe (il publish single-file non lascia altro, ma per sicurezza)
     Get-ChildItem $portable -Exclude 'Sonda.exe' | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root 'LEGGIMI.txt') $portable -ErrorAction SilentlyContinue
+    Copy-Item (Join-Path $root 'README.txt') $portable -ErrorAction SilentlyContinue
+    Copy-Item (Join-Path $root 'LICENSE') (Join-Path $portable 'LICENSE.txt') -ErrorAction SilentlyContinue
 
     $exe = Join-Path $portable 'Sonda.exe'
     $mb = [Math]::Round((Get-Item $exe).Length / 1MB, 1)

@@ -27,11 +27,18 @@ Come si usa
 5. Riavvia come amministratore per leggere System Volume Information (punti di
    ripristino), WindowsApps e i profili degli altri utenti.
 
+Lingua
+------
+Italiano e inglese. Il pulsante con l'ingranaggio (in alto a destra) apre Impostazioni >
+Lingua; "Automatica" segue Windows. La scelta si salva in
+%APPDATA%\Sonda\impostazioni.json.
+
 Da riga di comando
 ------------------
   Sonda.exe C:\                        apre e analizza subito C:
   Sonda.exe --report C:\ --out r.txt   scrive il rapporto completo in un file di testo
   Sonda.exe --report C:\ --csv dir     come sopra, piu' tre CSV (file, cartelle, cause)
+  Sonda.exe --report C:\ --lang en     forza la lingua per questa esecuzione
 
 Portable
 --------
@@ -47,4 +54,4 @@ Limiti da sapere
 - Le etichette "Eliminabile / Da valutare / Non toccare" sono euristiche per categoria:
   guarda sempre il percorso prima di eliminare. Tutto va nel Cestino, non si perde nulla.
 
-StarVerb Audio - 2026
+StarVerb Audio - 2026 - licenza MIT

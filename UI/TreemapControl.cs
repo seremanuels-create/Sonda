@@ -68,7 +68,7 @@ public sealed class TreemapControl : FrameworkElement
         _flat.Clear();
         if (_items.Count == 0 || bounds.Width < 4 || bounds.Height < 4)
         {
-            var ft = Text("Nessun dato", 13, Color.FromRgb(0x89, 0x87, 0x81));
+            var ft = Text(Sonda.Core.Loc.S("ui.treemap.empty"), 13, Color.FromRgb(0x89, 0x87, 0x81));
             dc.DrawText(ft, new Point((bounds.Width - ft.Width) / 2, (bounds.Height - ft.Height) / 2));
             return;
         }
@@ -112,7 +112,7 @@ public sealed class TreemapControl : FrameworkElement
                     double a = area * k.Weight / Math.Max(1, total);
                     if (a >= 60 && keep.Count < 40) keep.Add(k); else rest += k.Weight;
                 }
-                if (rest > 0) keep.Add(new TreemapItem { Label = "altro", Weight = rest, Color = it.Color, IsDir = false, Tag = null });
+                if (rest > 0) keep.Add(new TreemapItem { Label = Sonda.Core.Loc.S("ui.treemap.other"), Weight = rest, Color = it.Color, IsDir = false, Tag = null });
                 Layout(keep, childRect, it.Depth + 1, it);
                 foreach (var k in keep) DrawItem(dc, k);
                 drewChildren = true;

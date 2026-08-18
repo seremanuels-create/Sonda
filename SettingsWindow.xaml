@@ -1,0 +1,22 @@
+<Window x:Class="Sonda.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:Sonda.UI"
+        Title="{ui:S settings.title}" SizeToContent="Height" Width="440"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Icon="Resources/icon.ico">
+    <Border Background="{StaticResource PageBrush}" Padding="20">
+        <StackPanel>
+            <TextBlock Text="{ui:S settings.lang}" Style="{StaticResource Eyebrow}" Margin="0,0,0,6"/>
+            <ComboBox x:Name="LangBox" DisplayMemberPath="Name" SelectionChanged="LangBox_SelectionChanged"/>
+            <TextBlock Text="{ui:S settings.lang.note}" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" TextTrimming="None" Margin="0,8,0,0"/>
+
+            <Separator Margin="0,18" Background="{StaticResource LineBrush}"/>
+
+            <TextBlock x:Name="AboutText" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" TextTrimming="None"/>
+
+            <Button Content="{ui:S settings.close}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"
+                    Margin="0,18,0,0" MinWidth="110" Click="Close_Click" IsDefault="True" IsCancel="True"/>
+        </StackPanel>
+    </Border>
+</Window>

@@ -68,14 +68,14 @@ public static class Palette
 
     public static string FamilyName(Family f) => f switch
     {
-        Family.Windows => "Windows",
-        Family.Programs => "Programmi",
-        Family.AppData => "Dati app e cache",
-        Family.Personal => "File personali",
-        Family.Dev => "Sviluppo",
-        Family.System => "File di sistema",
-        Family.VirtualDisks => "Dischi virtuali",
-        _ => "Altro",
+        Family.Windows => Loc.S("family.windows"),
+        Family.Programs => Loc.S("family.programs"),
+        Family.AppData => Loc.S("family.appdata"),
+        Family.Personal => Loc.S("family.personal"),
+        Family.Dev => Loc.S("family.dev"),
+        Family.System => Loc.S("family.system"),
+        Family.VirtualDisks => Loc.S("family.virtualdisks"),
+        _ => Loc.S("family.other"),
     };
 
     public static SolidColorBrush Safety(Safety s)

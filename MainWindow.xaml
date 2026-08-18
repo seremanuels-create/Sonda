@@ -2,19 +2,19 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:Sonda.UI"
-        Title="Sonda — spazio su disco" Height="900" Width="1440" MinWidth="1080" MinHeight="680"
+        Title="Sonda" Height="900" Width="1440" MinWidth="1080" MinHeight="680"
         WindowStartupLocation="CenterScreen" Icon="Resources/icon.ico">
 
     <Window.Resources>
         <!-- Menu contestuale condiviso dalle righe di file/cartelle -->
         <ContextMenu x:Key="RowMenu">
-            <MenuItem Header="Apri in Esplora risorse" Click="RowOpen_Click" FontWeight="SemiBold"/>
-            <MenuItem Header="Mostra nella cartella" Click="RowReveal_Click"/>
-            <MenuItem Header="Entra nella cartella (in Sonda)" Click="RowEnter_Click"/>
-            <MenuItem Header="Copia percorso" Click="RowCopy_Click"/>
-            <MenuItem Header="Proprietà" Click="RowProps_Click"/>
+            <MenuItem Header="{ui:S menu.open}" Click="RowOpen_Click" FontWeight="SemiBold"/>
+            <MenuItem Header="{ui:S menu.reveal}" Click="RowReveal_Click"/>
+            <MenuItem Header="{ui:S menu.enter}" Click="RowEnter_Click"/>
+            <MenuItem Header="{ui:S menu.copyPath}" Click="RowCopy_Click"/>
+            <MenuItem Header="{ui:S menu.properties}" Click="RowProps_Click"/>
             <Separator/>
-            <MenuItem Header="Elimina (nel Cestino)…" Click="RowDelete_Click"/>
+            <MenuItem Header="{ui:S menu.delete}" Click="RowDelete_Click"/>
         </ContextMenu>
 
         <Style x:Key="RowItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -77,24 +77,26 @@
                 </StackPanel>
 
                 <ComboBox x:Name="DriveBox" Grid.Column="1" Width="230" Margin="0,0,8,0" DisplayMemberPath="Display" SelectionChanged="DriveBox_SelectionChanged"/>
-                <Button Grid.Column="2" Content="Cartella…" Click="PickFolder_Click" Margin="0,0,8,0" ToolTip="Analizza una sola cartella invece dell'intero disco"/>
-                <Button x:Name="ScanButton" Grid.Column="3" Content="Analizza" Style="{StaticResource PrimaryButton}" Click="Scan_Click" MinWidth="110"/>
+                <Button Grid.Column="2" Content="{ui:S ui.folderButton}" Click="PickFolder_Click" Margin="0,0,8,0" ToolTip="{ui:S ui.folderButton.tip}"/>
+                <Button x:Name="ScanButton" Grid.Column="3" Content="{ui:S ui.scan}" Style="{StaticResource PrimaryButton}" Click="Scan_Click" MinWidth="110"/>
 
                 <StackPanel Grid.Column="4" Orientation="Vertical" VerticalAlignment="Center" Margin="18,0,12,0">
-                    <TextBlock x:Name="ProgressText" Style="{StaticResource Muted}" Text="Scegli il disco e premi Analizza."/>
+                    <TextBlock x:Name="ProgressText" Style="{StaticResource Muted}" Text="{ui:S ui.ready}"/>
                     <TextBlock x:Name="ProgressPath" Foreground="{StaticResource MutedBrush}" FontSize="11" Text="" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="ElevateButton" Content="Riavvia come amministratore" Click="Elevate_Click" Margin="0,0,8,0"
-                            ToolTip="Per leggere System Volume Information, gli altri profili e le copie shadow"/>
-                    <Button x:Name="ExportButton" Content="Esporta ▾" Click="Export_Click" IsEnabled="False">
+                    <Button x:Name="ElevateButton" Content="{ui:S ui.elevate}" Click="Elevate_Click" Margin="0,0,8,0"
+                            ToolTip="{ui:S ui.elevate.tip}"/>
+                    <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Padding="10,6" Margin="0,0,8,0"
+                            Click="Settings_Click" ToolTip="{ui:S ui.settings}"/>
+                    <Button x:Name="ExportButton" Content="{ui:S ui.export}" Click="Export_Click" IsEnabled="False">
                         <Button.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Rapporto completo (testo)…" Click="ExportText_Click"/>
-                                <MenuItem Header="File più grandi (CSV)…" Click="ExportFilesCsv_Click"/>
-                                <MenuItem Header="Cartelle (CSV)…" Click="ExportDirsCsv_Click"/>
-                                <MenuItem Header="Cause (CSV)…" Click="ExportCausesCsv_Click"/>
+                                <MenuItem Header="{ui:S ui.export.text}" Click="ExportText_Click"/>
+                                <MenuItem Header="{ui:S ui.export.files}" Click="ExportFilesCsv_Click"/>
+                                <MenuItem Header="{ui:S ui.export.dirs}" Click="ExportDirsCsv_Click"/>
+                                <MenuItem Header="{ui:S ui.export.causes}" Click="ExportCausesCsv_Click"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -121,7 +123,7 @@
                     <Border Background="{StaticResource FreeBrush}" CornerRadius="3"/>
                     <Border x:Name="VolumeUsedBar" HorizontalAlignment="Left" Background="{StaticResource UsedBrush}" CornerRadius="3" Width="0"/>
                     <Border x:Name="VolumeSeenBar" HorizontalAlignment="Left" Background="#1C5CAB" CornerRadius="3" Width="0" Height="4" VerticalAlignment="Bottom"
-                            ToolTip="Parte dello spazio usato che la scansione ha attribuito a file"/>
+                            ToolTip="{ui:S ui.volume.seenTip}"/>
                 </Grid>
             </Grid>
         </Border>
@@ -131,8 +133,8 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource WarnFgBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock x:Name="AdminBannerText" Foreground="{StaticResource WarnFgBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
-                           Text="Non sei amministratore: System Volume Information (punti di ripristino), i profili degli altri utenti e alcune cartelle di sistema non si possono leggere. Il loro spazio comparirà come 'non attribuito'."/>
-                <Button Content="Riavvia come amministratore" Style="{StaticResource LinkButton}" Click="Elevate_Click" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                           Text="{ui:S ui.adminBanner}"/>
+                <Button Content="{ui:S ui.elevate}" Style="{StaticResource LinkButton}" Click="Elevate_Click" Margin="10,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 
@@ -143,7 +145,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="StatusText" Style="{StaticResource Muted}" FontSize="12" Text="Pronto."/>
+                <TextBlock x:Name="StatusText" Style="{StaticResource Muted}" FontSize="12" Text="{ui:S ui.status.ready}"/>
                 <TextBlock x:Name="StatusRight" Grid.Column="1" Style="{StaticResource Muted}" FontSize="12" Text=""/>
             </Grid>
         </Border>
@@ -159,11 +161,11 @@
             <!-- Colonna sinistra: cause -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <TextBlock Text="Causa principale" Style="{StaticResource Eyebrow}" Margin="2,0,0,6"/>
+                    <TextBlock Text="{ui:S ui.mainCause}" Style="{StaticResource Eyebrow}" Margin="2,0,0,6"/>
                     <Border x:Name="MainCauseCard" Style="{StaticResource Card}" Cursor="Hand" MouseLeftButtonUp="MainCause_Click">
                         <StackPanel x:Name="MainCausePanel">
                             <TextBlock x:Name="NoDataText" Style="{StaticResource Muted}" TextWrapping="Wrap"
-                                       Text="Qui comparirà la voce che occupa più spazio, con la spiegazione di cos'è e di come liberarlo."/>
+                                       Text="{ui:S ui.mainCause.empty}"/>
                             <StackPanel x:Name="MainCauseContent" Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal">
                                     <Border Width="12" Height="12" CornerRadius="3" x:Name="MainCauseSwatch" Margin="0,0,8,0" VerticalAlignment="Center"/>
@@ -179,11 +181,11 @@
                                 </Grid>
                                 <TextBlock x:Name="MainCauseFiles" Style="{StaticResource Muted}" FontSize="12"/>
                                 <ContentControl x:Name="MainCauseSafety" ContentTemplate="{StaticResource SafetyChip}" Margin="0,8,0,0"/>
-                                <TextBlock Text="Cos'è" Style="{StaticResource Eyebrow}" Margin="0,12,0,2"/>
+                                <TextBlock Text="{ui:S ui.whatIsIt}" Style="{StaticResource Eyebrow}" Margin="0,12,0,2"/>
                                 <TextBlock x:Name="MainCauseDesc" TextWrapping="Wrap" TextTrimming="None"/>
-                                <TextBlock Text="Come liberare spazio" Style="{StaticResource Eyebrow}" Margin="0,10,0,2"/>
+                                <TextBlock Text="{ui:S ui.howToFree}" Style="{StaticResource Eyebrow}" Margin="0,10,0,2"/>
                                 <TextBlock x:Name="MainCauseAction" TextWrapping="Wrap" TextTrimming="None"/>
-                                <TextBlock Text="Pesano di più" Style="{StaticResource Eyebrow}" Margin="0,10,0,2"/>
+                                <TextBlock Text="{ui:S ui.topFolders}" Style="{StaticResource Eyebrow}" Margin="0,10,0,2"/>
                                 <ItemsControl x:Name="MainCauseGroups">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -200,12 +202,12 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Vedi tutto il dettaglio" Margin="0,10,0,0" HorizontalAlignment="Left" Click="MainCause_Click"/>
+                                <Button Content="{ui:S ui.seeDetail}" Margin="0,10,0,0" HorizontalAlignment="Left" Click="MainCause_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="Altre cause, in ordine di peso" Style="{StaticResource Eyebrow}" Margin="2,16,0,6"/>
+                    <TextBlock Text="{ui:S ui.otherCauses}" Style="{StaticResource Eyebrow}" Margin="2,16,0,6"/>
                     <Border Style="{StaticResource Card}" Padding="6">
                         <ItemsControl x:Name="OtherCauses">
                             <ItemsControl.ItemTemplate>
@@ -247,18 +249,18 @@
                         </ItemsControl>
                     </Border>
 
-                    <TextBlock Text="Legenda" Style="{StaticResource Eyebrow}" Margin="2,16,0,6"/>
+                    <TextBlock Text="{ui:S ui.legend}" Style="{StaticResource Eyebrow}" Margin="2,16,0,6"/>
                     <Border Style="{StaticResource Card}" Padding="10">
                         <StackPanel>
                             <WrapPanel x:Name="LegendPanel"/>
                             <Separator Margin="0,8" Background="{StaticResource LineBrush}"/>
                             <WrapPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeDeletableBrush}" Margin="0,0,5,0"/><TextBlock Text="Eliminabile" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeReviewBrush}" Margin="0,0,5,0"/><TextBlock Text="Da valutare" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeKeepBrush}" Margin="0,0,5,0"/><TextBlock Text="Non toccare" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeDeletableBrush}" Margin="0,0,5,0"/><TextBlock Text="{ui:S safety.deletable}" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeReviewBrush}" Margin="0,0,5,0"/><TextBlock Text="{ui:S safety.review}" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2"><Ellipse Width="8" Height="8" Fill="{StaticResource SafeKeepBrush}" Margin="0,0,5,0"/><TextBlock Text="{ui:S safety.keep}" FontSize="12" Foreground="{StaticResource Ink2Brush}"/></StackPanel>
                             </WrapPanel>
                             <TextBlock Style="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"
-                                       Text="Le dimensioni sono 'su disco' (spazio davvero occupato, arrotondato al cluster; i file compressi e quelli solo online del cloud contano per quello che occupano)."/>
+                                       Text="{ui:S ui.legend.note}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -270,7 +272,7 @@
             <TabControl x:Name="Tabs" Grid.Column="2">
 
                 <!-- Cartelle -->
-                <TabItem Header="Cartelle">
+                <TabItem Header="{ui:S tab.folders}">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -288,29 +290,29 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Button x:Name="BackButton" Content="" FontFamily="Segoe MDL2 Assets" Padding="8,4" MinHeight="26" Click="Back_Click" ToolTip="Indietro" Margin="0,0,4,0"/>
-                                <Button x:Name="UpButton" Content="" FontFamily="Segoe MDL2 Assets" Padding="8,4" MinHeight="26" Click="Up_Click" ToolTip="Cartella superiore" Margin="0,0,8,0"/>
+                                <Button x:Name="BackButton" Content="" FontFamily="Segoe MDL2 Assets" Padding="8,4" MinHeight="26" Click="Back_Click" ToolTip="{ui:S ui.back}" Margin="0,0,4,0"/>
+                                <Button x:Name="UpButton" Content="" FontFamily="Segoe MDL2 Assets" Padding="8,4" MinHeight="26" Click="Up_Click" ToolTip="{ui:S ui.up}" Margin="0,0,8,0"/>
                                 <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                                     <StackPanel x:Name="Breadcrumb" Orientation="Horizontal"/>
                                 </ScrollViewer>
                                 <TextBlock x:Name="DirSummary" Grid.Column="3" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,0"/>
-                                <Button Grid.Column="4" Content="Apri in Esplora risorse" Click="OpenCurrent_Click" Padding="10,3" MinHeight="26"/>
+                                <Button Grid.Column="4" Content="{ui:S ui.openInExplorer}" Click="OpenCurrent_Click" Padding="10,3" MinHeight="26"/>
                             </Grid>
                         </Border>
 
                         <ListView x:Name="DirList" Grid.Row="1" ItemContainerStyle="{StaticResource RowItemStyle}" SelectionChanged="DirList_SelectionChanged">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Nome" Width="300" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
-                                    <GridViewColumn Header="Su disco" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
-                                    <GridViewColumn Header="Quota" Width="120" CellTemplate="{StaticResource BarCell}" ui:GridViewSort.PropertyName="Share"/>
-                                    <GridViewColumn Header="File" Width="80" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
-                                    <GridViewColumn Header="Tipo" Width="120" DisplayMemberBinding="{Binding TypeLabel}" ui:GridViewSort.PropertyName="TypeLabel"/>
-                                    <GridViewColumn Header="Categoria" Width="200" DisplayMemberBinding="{Binding CategoryName}" ui:GridViewSort.PropertyName="CategoryName"/>
-                                    <GridViewColumn Header="Sicurezza" Width="110" CellTemplate="{StaticResource SafetyCell}" ui:GridViewSort.PropertyName="Safety"/>
-                                    <GridViewColumn Header="Modificato" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
-                                    <GridViewColumn Header="Dimensione" Width="100" CellTemplate="{StaticResource LogicalCell}" ui:GridViewSort.PropertyName="Size"/>
-                                    <GridViewColumn Header="Note" Width="260" DisplayMemberBinding="{Binding Note}" ui:GridViewSort.PropertyName="Note"/>
+                                    <GridViewColumn Header="{ui:S col.name}" Width="300" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
+                                    <GridViewColumn Header="{ui:S col.onDisk}" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
+                                    <GridViewColumn Header="{ui:S col.share}" Width="120" CellTemplate="{StaticResource BarCell}" ui:GridViewSort.PropertyName="Share"/>
+                                    <GridViewColumn Header="{ui:S col.files}" Width="80" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
+                                    <GridViewColumn Header="{ui:S col.type}" Width="120" DisplayMemberBinding="{Binding TypeLabel}" ui:GridViewSort.PropertyName="TypeLabel"/>
+                                    <GridViewColumn Header="{ui:S col.category}" Width="200" DisplayMemberBinding="{Binding CategoryName}" ui:GridViewSort.PropertyName="CategoryName"/>
+                                    <GridViewColumn Header="{ui:S col.safety}" Width="135" CellTemplate="{StaticResource SafetyCell}" ui:GridViewSort.PropertyName="Safety"/>
+                                    <GridViewColumn Header="{ui:S col.modified}" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
+                                    <GridViewColumn Header="{ui:S col.size}" Width="100" CellTemplate="{StaticResource LogicalCell}" ui:GridViewSort.PropertyName="Size"/>
+                                    <GridViewColumn Header="{ui:S col.notes}" Width="260" DisplayMemberBinding="{Binding Note}" ui:GridViewSort.PropertyName="Note"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>
@@ -324,7 +326,7 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <Grid Margin="8,4">
-                                    <TextBlock Text="Mappa della cartella  ·  ogni rettangolo è proporzionale allo spazio; clic per selezionare, doppio clic per entrare" Style="{StaticResource Muted}" FontSize="11.5"/>
+                                    <TextBlock Text="{ui:S ui.treemapHint}" Style="{StaticResource Muted}" FontSize="11.5"/>
                                 </Grid>
                                 <ui:TreemapControl x:Name="Treemap" Grid.Row="1" Margin="4,0,4,4"/>
                             </Grid>
@@ -333,7 +335,7 @@
                 </TabItem>
 
                 <!-- File più grandi -->
-                <TabItem Header="File più grandi">
+                <TabItem Header="{ui:S tab.biggestFiles}">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -347,23 +349,23 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Filtra:" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Muted}"/>
-                            <TextBox x:Name="FileFilter" Grid.Column="1" TextChanged="FileFilter_TextChanged" ToolTip="Cerca nel nome o nel percorso"/>
+                            <TextBlock Text="{ui:S ui.filter}" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Muted}"/>
+                            <TextBox x:Name="FileFilter" Grid.Column="1" TextChanged="FileFilter_TextChanged" ToolTip="{ui:S ui.filter.tip}"/>
                             <ComboBox x:Name="FileCatFilter" Grid.Column="2" Width="260" Margin="8,0,0,0" SelectionChanged="FileFilter_TextChanged"/>
                             <TextBlock x:Name="FilesSummary" Grid.Column="3" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,0"/>
-                            <Button Grid.Column="4" Content="Elimina selezionati (Cestino)…" Click="DeleteSelectedFiles_Click"/>
+                            <Button Grid.Column="4" Content="{ui:S ui.deleteSelected}" Click="DeleteSelectedFiles_Click"/>
                         </Grid>
                         <ListView x:Name="FileList" Grid.Row="1" ItemContainerStyle="{StaticResource RowItemStyle}" SelectionMode="Extended">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Nome" Width="260" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
-                                    <GridViewColumn Header="Su disco" Width="95" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
-                                    <GridViewColumn Header="Cartella" Width="330" DisplayMemberBinding="{Binding Folder}" ui:GridViewSort.PropertyName="Folder"/>
-                                    <GridViewColumn Header="Cos'è" Width="210" DisplayMemberBinding="{Binding What}" ui:GridViewSort.PropertyName="What"/>
-                                    <GridViewColumn Header="Categoria (causa)" Width="200" DisplayMemberBinding="{Binding CategoryName}" ui:GridViewSort.PropertyName="CategoryName"/>
-                                    <GridViewColumn Header="Sicurezza" Width="110" CellTemplate="{StaticResource SafetyCell}" ui:GridViewSort.PropertyName="Safety"/>
-                                    <GridViewColumn Header="Modificato" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
-                                    <GridViewColumn Header="Note" Width="200" DisplayMemberBinding="{Binding Note}" ui:GridViewSort.PropertyName="Note"/>
+                                    <GridViewColumn Header="{ui:S col.name}" Width="260" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
+                                    <GridViewColumn Header="{ui:S col.onDisk}" Width="95" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
+                                    <GridViewColumn Header="{ui:S col.folder}" Width="330" DisplayMemberBinding="{Binding Folder}" ui:GridViewSort.PropertyName="Folder"/>
+                                    <GridViewColumn Header="{ui:S col.whatIsIt}" Width="210" DisplayMemberBinding="{Binding What}" ui:GridViewSort.PropertyName="What"/>
+                                    <GridViewColumn Header="{ui:S col.categoryCause}" Width="200" DisplayMemberBinding="{Binding CategoryName}" ui:GridViewSort.PropertyName="CategoryName"/>
+                                    <GridViewColumn Header="{ui:S col.safety}" Width="135" CellTemplate="{StaticResource SafetyCell}" ui:GridViewSort.PropertyName="Safety"/>
+                                    <GridViewColumn Header="{ui:S col.modified}" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
+                                    <GridViewColumn Header="{ui:S col.notes}" Width="200" DisplayMemberBinding="{Binding Note}" ui:GridViewSort.PropertyName="Note"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>
@@ -371,7 +373,7 @@
                 </TabItem>
 
                 <!-- Dettaglio causa -->
-                <TabItem Header="Dettaglio causa" x:Name="CauseTab">
+                <TabItem Header="{ui:S tab.causeDetail}" x:Name="CauseTab">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -398,7 +400,7 @@
                             </Grid>
                         </Border>
                         <DockPanel Grid.Row="1">
-                            <TextBlock DockPanel.Dock="Top" Text="Cartelle che pesano di più in questa causa  ·  doppio clic per entrare" Style="{StaticResource Eyebrow}" Margin="2,0,0,4"/>
+                            <TextBlock DockPanel.Dock="Top" Text="{ui:S ui.causeGroups}" Style="{StaticResource Eyebrow}" Margin="2,0,0,4"/>
                             <ListView x:Name="GroupList" MouseDoubleClick="GroupList_DoubleClick">
                                 <ListView.ItemContainerStyle>
                                     <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -408,9 +410,9 @@
                                 </ListView.ItemContainerStyle>
                                 <ListView.View>
                                     <GridView>
-                                        <GridViewColumn Header="Cartella" Width="560" DisplayMemberBinding="{Binding Path}" ui:GridViewSort.PropertyName="Path"/>
-                                        <GridViewColumn Header="Su disco" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
-                                        <GridViewColumn Header="Quota causa" Width="120" ui:GridViewSort.PropertyName="Share">
+                                        <GridViewColumn Header="{ui:S col.folder}" Width="560" DisplayMemberBinding="{Binding Path}" ui:GridViewSort.PropertyName="Path"/>
+                                        <GridViewColumn Header="{ui:S col.onDisk}" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
+                                        <GridViewColumn Header="{ui:S col.causeShare}" Width="120" ui:GridViewSort.PropertyName="Share">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Grid Width="110" Height="14">
@@ -421,23 +423,23 @@
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
-                                        <GridViewColumn Header="File" Width="90" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
-                                        <GridViewColumn Header="Note" Width="160" DisplayMemberBinding="{Binding Note}"/>
+                                        <GridViewColumn Header="{ui:S col.files}" Width="90" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
+                                        <GridViewColumn Header="{ui:S col.notes}" Width="160" DisplayMemberBinding="{Binding Note}"/>
                                     </GridView>
                                 </ListView.View>
                             </ListView>
                         </DockPanel>
                         <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Center" ResizeBehavior="PreviousAndNext"/>
                         <DockPanel Grid.Row="3">
-                            <TextBlock DockPanel.Dock="Top" Text="File più grandi in questa causa" Style="{StaticResource Eyebrow}" Margin="2,4,0,4"/>
+                            <TextBlock DockPanel.Dock="Top" Text="{ui:S ui.causeFiles}" Style="{StaticResource Eyebrow}" Margin="2,4,0,4"/>
                             <ListView x:Name="CauseFileList" ItemContainerStyle="{StaticResource RowItemStyle}" SelectionMode="Extended">
                                 <ListView.View>
                                     <GridView>
-                                        <GridViewColumn Header="Nome" Width="280" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
-                                        <GridViewColumn Header="Su disco" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
-                                        <GridViewColumn Header="Cos'è" Width="230" DisplayMemberBinding="{Binding What}" ui:GridViewSort.PropertyName="What"/>
-                                        <GridViewColumn Header="Cartella" Width="420" DisplayMemberBinding="{Binding Folder}" ui:GridViewSort.PropertyName="Folder"/>
-                                        <GridViewColumn Header="Modificato" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
+                                        <GridViewColumn Header="{ui:S col.name}" Width="280" CellTemplate="{StaticResource NameCell}" ui:GridViewSort.PropertyName="Name"/>
+                                        <GridViewColumn Header="{ui:S col.onDisk}" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
+                                        <GridViewColumn Header="{ui:S col.whatIsIt}" Width="230" DisplayMemberBinding="{Binding What}" ui:GridViewSort.PropertyName="What"/>
+                                        <GridViewColumn Header="{ui:S col.folder}" Width="420" DisplayMemberBinding="{Binding Folder}" ui:GridViewSort.PropertyName="Folder"/>
+                                        <GridViewColumn Header="{ui:S col.modified}" Width="125" DisplayMemberBinding="{Binding ModifiedText}" ui:GridViewSort.PropertyName="Modified"/>
                                     </GridView>
                                 </ListView.View>
                             </ListView>
@@ -446,19 +448,19 @@
                 </TabItem>
 
                 <!-- Tipi di file -->
-                <TabItem Header="Tipi di file">
+                <TabItem Header="{ui:S tab.fileTypes}">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Cosa sono i file che occupano spazio, indipendentemente da dove stanno. Doppio clic su un tipo per vedere i suoi file più grandi." Style="{StaticResource Muted}" Margin="2,0,0,8"/>
+                        <TextBlock Text="{ui:S ui.typesHint}" Style="{StaticResource Muted}" Margin="2,0,0,8"/>
                         <ListView x:Name="TypeList" Grid.Row="1" MouseDoubleClick="TypeList_DoubleClick">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Tipo" Width="220" DisplayMemberBinding="{Binding Label}" ui:GridViewSort.PropertyName="Label"/>
-                                    <GridViewColumn Header="Su disco" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
-                                    <GridViewColumn Header="Quota" Width="120" ui:GridViewSort.PropertyName="Share">
+                                    <GridViewColumn Header="{ui:S col.type}" Width="220" DisplayMemberBinding="{Binding Label}" ui:GridViewSort.PropertyName="Label"/>
+                                    <GridViewColumn Header="{ui:S col.onDisk}" Width="100" CellTemplate="{StaticResource SizeCell}" ui:GridViewSort.PropertyName="OnDisk"/>
+                                    <GridViewColumn Header="{ui:S col.share}" Width="120" ui:GridViewSort.PropertyName="Share">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Grid Width="110" Height="14">
@@ -469,9 +471,9 @@
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="File" Width="100" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
-                                    <GridViewColumn Header="Descrizione" Width="330" DisplayMemberBinding="{Binding Detail}"/>
-                                    <GridViewColumn Header="Estensioni più pesanti" Width="300" DisplayMemberBinding="{Binding Extensions}"/>
+                                    <GridViewColumn Header="{ui:S col.files}" Width="100" CellTemplate="{StaticResource FilesCell}" ui:GridViewSort.PropertyName="Files"/>
+                                    <GridViewColumn Header="{ui:S col.description}" Width="330" DisplayMemberBinding="{Binding Detail}"/>
+                                    <GridViewColumn Header="{ui:S col.topExtensions}" Width="300" DisplayMemberBinding="{Binding Extensions}"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>
@@ -479,7 +481,7 @@
                 </TabItem>
 
                 <!-- Bilancio -->
-                <TabItem Header="Bilancio">
+                <TabItem Header="{ui:S tab.balance}">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -487,7 +489,7 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="2,0,0,8"
-                                   Text="Il conto della serva: lo spazio che Windows dice 'usato' contro quello che la scansione ha trovato. La differenza dice quanto sta in posti non leggibili (punti di ripristino, altri profili) o in metadati."/>
+                                   Text="{ui:S ui.balanceHint}"/>
                         <ListView x:Name="BalanceList" Grid.Row="1" MaxHeight="360">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -501,13 +503,13 @@
                             </ListView.ItemContainerStyle>
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Voce" Width="300" DisplayMemberBinding="{Binding Label}"/>
-                                    <GridViewColumn Header="Byte" Width="110">
+                                    <GridViewColumn Header="{ui:S col.item}" Width="300" DisplayMemberBinding="{Binding Label}"/>
+                                    <GridViewColumn Header="{ui:S col.bytes}" Width="110">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate><TextBlock Text="{Binding BytesText}" HorizontalAlignment="Right" Margin="0,0,6,0"/></DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="Spiegazione" Width="900">
+                                    <GridViewColumn Header="{ui:S col.explanation}" Width="900">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate><TextBlock Text="{Binding Note}" TextWrapping="Wrap" MaxWidth="880"/></DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -516,13 +518,13 @@
                             </ListView.View>
                         </ListView>
                         <DockPanel Grid.Row="2" Margin="0,12,0,0">
-                            <TextBlock DockPanel.Dock="Top" x:Name="DeniedHeader" Text="Cartelle non accessibili" Style="{StaticResource Eyebrow}" Margin="2,0,0,4"/>
+                            <TextBlock DockPanel.Dock="Top" x:Name="DeniedHeader" Text="{ui:S ui.deniedList}" Style="{StaticResource Eyebrow}" Margin="2,0,0,4"/>
                             <ListView x:Name="DeniedList" ItemContainerStyle="{StaticResource RowItemStyle}">
                                 <ListView.View>
                                     <GridView>
-                                        <GridViewColumn Header="Percorso" Width="700" DisplayMemberBinding="{Binding Path}"/>
-                                        <GridViewColumn Header="Categoria" Width="240" DisplayMemberBinding="{Binding CategoryName}"/>
-                                        <GridViewColumn Header="Note" Width="300" DisplayMemberBinding="{Binding Note}"/>
+                                        <GridViewColumn Header="{ui:S col.path}" Width="700" DisplayMemberBinding="{Binding Path}"/>
+                                        <GridViewColumn Header="{ui:S col.category}" Width="240" DisplayMemberBinding="{Binding CategoryName}"/>
+                                        <GridViewColumn Header="{ui:S col.notes}" Width="300" DisplayMemberBinding="{Binding Note}"/>
                                     </GridView>
                                 </ListView.View>
                             </ListView>

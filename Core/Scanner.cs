@@ -127,7 +127,7 @@ public sealed class ScanEngine
                 result.ShadowStorageBytes = bytes;
                 result.ShadowStorageNote = note;
             }
-            catch (Exception ex) { result.ShadowStorageNote = "Copie shadow: non determinabile (" + ex.Message + ")"; }
+            catch (Exception ex) { result.ShadowStorageNote = Loc.S("shadow.error", ex.Message); }
         }
         return result;
     }

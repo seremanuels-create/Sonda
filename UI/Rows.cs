@@ -33,24 +33,25 @@ public sealed class Row
     public string OnDiskText => Format.Bytes(OnDisk);
     public string SizeText => Format.Bytes(Size);
     public string ModifiedText => Format.Date(Modified);
-    public string Tooltip => IsDir
-        ? $"{Path}\n{Format.Bytes(OnDisk)} su disco  ·  {Format.Count(Files)} file\n{CategoryName}{(Note.Length > 0 ? "\n" + Note : "")}"
-        : $"{Path}\n{Format.Bytes(OnDisk)} su disco ({Format.Bytes(Size)} logici)\n{What}\n{CategoryName}{(Note.Length > 0 ? "\n" + Note : "")}";
+    public string Tooltip => (IsDir
+        ? Loc.S("tip.dir", Path, Format.Bytes(OnDisk), Format.Count(Files), CategoryName)
+        : Loc.S("tip.file", Path, Format.Bytes(OnDisk), Format.Bytes(Size), What, CategoryName))
+        + (Note.Length > 0 ? "\n" + Note : "");
 
     public static Row FromDir(DirNode d, long parentTotal)
     {
         var cat = Classifier.Get(d.Cat);
-        string note = d.IsReparse ? "Giunzione/collegamento: il contenuto è contato altrove"
-                    : d.IsAccessDenied ? "Accesso negato: contenuto sconosciuto"
-                    : d.HasError ? "Errore: " + d.ErrorMessage : "";
+        string note = d.IsReparse ? Loc.S("note.reparse")
+                    : d.IsAccessDenied ? Loc.S("note.denied")
+                    : d.HasError ? Loc.S("note.error", d.ErrorMessage ?? "") : "";
         return new Row
         {
             Name = d.Name, IsDir = true, Node = d,
             OnDisk = d.OnDisk, Size = d.Size, Files = d.FileCount,
             Share = parentTotal > 0 ? (double)d.OnDisk / parentTotal : 0,
             Modified = d.ModifiedTicks > 0 ? new DateTime(d.ModifiedTicks, DateTimeKind.Utc).ToLocalTime() : DateTime.MinValue,
-            TypeLabel = d.IsReparse ? "Collegamento" : "Cartella",
-            What = d.IsReparse ? "Giunzione o collegamento simbolico" : cat.Description,
+            TypeLabel = d.IsReparse ? Loc.S("type.link") : Loc.S("type.folder"),
+            What = d.IsReparse ? Loc.S("type.link.detail") : cat.Description,
             CategoryName = cat.Name, Safety = cat.Safety, Family = cat.Family,
             Path = d.FullPath, Folder = d.Parent?.FullPath ?? "", Note = note,
         };
@@ -60,9 +61,9 @@ public sealed class Row
     {
         var cat = Classifier.Get(f.Cat);
         var t = Classifier.GetType(f.TypeId);
-        string note = f.IsCloudPlaceholder ? "File cloud: occupa solo lo spazio scaricato"
-                    : f.IsCompressed ? "Compresso da NTFS"
-                    : f.IsSparse ? "File sparse" : "";
+        string note = f.IsCloudPlaceholder ? Loc.S("note.cloud")
+                    : f.IsCompressed ? Loc.S("note.compressed")
+                    : f.IsSparse ? Loc.S("note.sparse") : "";
         return new Row
         {
             Name = f.Name, IsDir = false, File = f,
@@ -87,7 +88,7 @@ public sealed class CauseRow
     public string ShareText => Format.Percent(Cause.Share);
     public double BarShare { get; init; }  // rispetto alla causa principale, per la barretta
     public int Files => Cause.Files;
-    public string FilesText => Format.Count(Cause.Files) + " file";
+    public string FilesText => Loc.S("ui.nFiles", Format.Count(Cause.Files));
     public Family Family => Cause.Category.Family;
     public Safety Safety => Cause.Category.Safety;
     public string Description => Cause.Category.Description;
@@ -105,7 +106,7 @@ public sealed class GroupRow
     public string FilesText => Format.Count(Item.Files);
     public double Share { get; init; }
     public string ShareText => Format.Percent(Share);
-    public string Note => Item.Dir.IsReparse ? "collegamento" : Item.Dir.IsAccessDenied ? "accesso negato" : "";
+    public string Note => Item.Dir.IsReparse ? Loc.S("note.reparseShort") : Item.Dir.IsAccessDenied ? Loc.S("note.deniedShort") : "";
     /// <summary>Ultimi tre segmenti del percorso: "…\AppData\Local\Google".</summary>
     public string ShortPath
     {

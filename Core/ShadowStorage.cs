@@ -20,7 +20,7 @@ public static class ShadowStorage
             {
                 foreach (ManagementObject mo in col) { deviceId = mo["DeviceID"] as string; break; }
             }
-            if (deviceId is null) return (null, "Copie shadow: volume non trovato in WMI.");
+            if (deviceId is null) return (null, Loc.S("shadow.noVolume"));
 
             long used = 0; bool found = false;
             using (var s = new ManagementObjectSearcher("root\\cimv2", "SELECT Volume, DiffVolume, UsedSpace FROM Win32_ShadowStorage"))
@@ -40,20 +40,16 @@ public static class ShadowStorage
                     }
                 }
             }
-            if (!found) return (0, Native.IsAdministrator()
-                ? "Nessuna copia shadow ospitata su questo volume."
-                : "Nessuna copia shadow su questo volume (o dato non disponibile senza privilegi).");
-            return (used, "Da WMI (Win32_ShadowStorage).");
+            if (!found) return (0, Native.IsAdministrator() ? Loc.S("shadow.none.admin") : Loc.S("shadow.none"));
+            return (used, Loc.S("shadow.wmi"));
         }
         catch (ManagementException ex)
         {
-            return (null, Native.IsAdministrator()
-                ? "Copie shadow: WMI non ha risposto (" + ex.Message + ")."
-                : "Copie shadow: serve avviare come amministratore per leggere il dato.");
+            return (null, Native.IsAdministrator() ? Loc.S("shadow.wmiError", ex.Message) : Loc.S("shadow.needAdmin"));
         }
         catch (UnauthorizedAccessException)
         {
-            return (null, "Copie shadow: serve avviare come amministratore per leggere il dato.");
+            return (null, Loc.S("shadow.needAdmin"));
         }
     }
 }

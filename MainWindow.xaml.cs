@@ -43,6 +43,8 @@ public partial class MainWindow : Window
     /// <summary>Diagnostica: se impostato, dopo l'analisi salva un PNG della finestra ed esce.</summary>
     public string? ShotPath { get; set; }
     public int ShotTab { get; set; } = -1;
+    /// <summary>Diagnostica: cambia lingua a caldo prima dello scatto, per provare la ricostruzione.</summary>
+    public Lang? ShotRelang { get; set; }
 
     public MainWindow(string? initialPath)
     {
@@ -67,7 +69,7 @@ public partial class MainWindow : Window
         bool admin = Native.IsAdministrator();
         AdminBanner.Visibility = admin ? Visibility.Collapsed : Visibility.Visible;
         ElevateButton.Visibility = admin ? Visibility.Collapsed : Visibility.Visible;
-        if (admin) Title += "  (amministratore)";
+        Title = Loc.S(admin ? "app.title.admin" : "app.title");
 
         PopulateDrives();
         BuildLegend();
@@ -93,11 +95,11 @@ public partial class MainWindow : Window
             {
                 if (!d.IsReady) continue;
                 if (d.DriveType is not (DriveType.Fixed or DriveType.Removable or DriveType.Network)) continue;
-                string label = string.IsNullOrEmpty(d.VolumeLabel) ? (d.DriveType == DriveType.Fixed ? "Disco locale" : d.DriveType.ToString()) : d.VolumeLabel;
+                string label = string.IsNullOrEmpty(d.VolumeLabel) ? (d.DriveType == DriveType.Fixed ? Loc.S("ui.localDisk") : d.DriveType.ToString()) : d.VolumeLabel;
                 items.Add(new DriveChoice
                 {
                     Path = d.RootDirectory.FullName,
-                    Display = $"{d.Name.TrimEnd('\\')}  {label}  —  {Format.Bytes(d.TotalSize - d.TotalFreeSpace)} usati di {Format.Bytes(d.TotalSize)}",
+                    Display = $"{d.Name.TrimEnd('\\')}  {label}  —  " + Loc.S("ui.driveUsedOf", Format.Bytes(d.TotalSize - d.TotalFreeSpace), Format.Bytes(d.TotalSize)),
                 });
             }
             catch { }
@@ -114,7 +116,7 @@ public partial class MainWindow : Window
         var existing = items.FirstOrDefault(i => string.Equals(i.Path.TrimEnd('\\'), full.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase));
         if (existing is null)
         {
-            existing = new DriveChoice { Path = full, Display = "Cartella:  " + full, IsFolder = true };
+            existing = new DriveChoice { Path = full, Display = Loc.S("ui.folderPrefix") + full, IsFolder = true };
             items = items.Where(i => !i.IsFolder).Append(existing).ToList();
             DriveBox.ItemsSource = items;
         }
@@ -137,12 +139,12 @@ public partial class MainWindow : Window
     private void DriveBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DriveBox.SelectedItem is DriveChoice c && !_scanning)
-            ProgressText.Text = c.IsFolder ? $"Pronto ad analizzare la cartella {c.Path}" : $"Pronto ad analizzare {c.Path.TrimEnd('\\')}";
+            ProgressText.Text = c.IsFolder ? Loc.S("ui.readyForFolder", c.Path) : Loc.S("ui.readyFor", c.Path.TrimEnd('\\'));
     }
 
     private void PickFolder_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFolderDialog { Title = "Scegli la cartella da analizzare", Multiselect = false };
+        var dlg = new OpenFolderDialog { Title = Loc.S("ui.pickFolder"), Multiselect = false };
         if (dlg.ShowDialog(this) == true && !string.IsNullOrEmpty(dlg.FolderName))
         {
             SelectPath(dlg.FolderName);
@@ -152,7 +154,7 @@ public partial class MainWindow : Window
 
     private void Scan_Click(object sender, RoutedEventArgs e)
     {
-        if (_scanning) { _cts?.Cancel(); ScanButton.IsEnabled = false; ScanButton.Content = "Fermo…"; return; }
+        if (_scanning) { _cts?.Cancel(); ScanButton.IsEnabled = false; ScanButton.Content = Loc.S("ui.stopping"); return; }
         StartScan();
     }
 
@@ -163,12 +165,12 @@ public partial class MainWindow : Window
         string path = choice.Path;
 
         _scanning = true;
-        ScanButton.Content = "Ferma";
+        ScanButton.Content = Loc.S("ui.stop");
         ScanButton.IsEnabled = true;
         DriveBox.IsEnabled = false;
         ExportButton.IsEnabled = false;
         ProgressPath.Text = "";
-        StatusText.Text = "Analisi in corso…";
+        StatusText.Text = Loc.S("ui.scanning");
         Mouse.OverrideCursor = Cursors.AppStarting;
 
         _cts = new CancellationTokenSource();
@@ -183,7 +185,7 @@ public partial class MainWindow : Window
         try
         {
             result = await Task.Run(() => engine.Run(path, token), CancellationToken.None);
-            ProgressText.Text = "Elaboro i risultati…";
+            ProgressText.Text = Loc.S("ui.processing");
             analysis = await Task.Run(() => Analysis.Build(result), CancellationToken.None);
         }
         catch (Exception ex) { error = ex.Message; }
@@ -191,33 +193,39 @@ public partial class MainWindow : Window
         _timer.Stop();
         Mouse.OverrideCursor = null;
         _scanning = false;
-        ScanButton.Content = "Analizza";
+        ScanButton.Content = Loc.S("ui.scan");
         ScanButton.IsEnabled = true;
         DriveBox.IsEnabled = true;
 
         if (error is not null || result is null || analysis is null)
         {
-            ProgressText.Text = "Errore: " + (error ?? "nessun risultato");
-            StatusText.Text = "Errore durante l'analisi.";
+            ProgressText.Text = Loc.S("ui.error", error ?? "?");
+            StatusText.Text = Loc.S("ui.status.error");
             return;
         }
 
         _result = result;
         _analysis = analysis;
         ExportButton.IsEnabled = true;
-        var st = result.Stats;
-        ProgressText.Text = (st.Cancelled ? "Interrotta: dati parziali.  " : "Fatto.  ")
-            + $"{Format.Count(st.Files)} file, {Format.Count(st.Dirs)} cartelle in {Format.Duration(st.Elapsed)}"
-            + (st.DeniedDirs > 0 ? $"  ·  {st.DeniedDirs} cartelle non accessibili" : "");
-        ProgressPath.Text = result.ScanPath;
-        StatusText.Text = st.Cancelled ? "Analisi interrotta: i numeri sono parziali." : "Analisi completata.";
-        StatusRight.Text = $"{Format.Count(st.Files)} file · {Format.Bytes(result.Root.OnDisk)} su disco" + (result.Elevated ? " · amministratore" : "");
+        ShowScanSummary();
         PopulateAll();
 
         if (ShotPath is not null)
         {
             if (ShotTab >= 0 && ShotTab < Tabs.Items.Count) Tabs.SelectedIndex = ShotTab;
             await Task.Delay(1200);
+            if (ShotRelang is Lang other)
+            {
+                // Prova del cambio lingua a caldo: come premere Impostazioni e scegliere un'altra lingua
+                Loc.Apply(other);
+                var w = RebuildForLanguage();
+                w.ShotPath = ShotPath;
+                w.ShotTab = ShotTab;
+                await Task.Delay(1500);
+                w.SaveShot(ShotPath);
+                w.Close();
+                return;
+            }
             SaveShot(ShotPath);
             Close();
         }
@@ -239,12 +247,26 @@ public partial class MainWindow : Window
         catch (Exception ex) { File.WriteAllText(path + ".err.txt", ex.ToString()); }
     }
 
+    /// <summary>Riscrive i testi di stato dai dati dell'ultima scansione (anche dopo un cambio di lingua).</summary>
+    private void ShowScanSummary()
+    {
+        if (_result is null) return;
+        var st = _result.Stats;
+        ProgressText.Text = Loc.S(st.Cancelled ? "ui.cancelled" : "ui.done")
+            + Loc.S("ui.doneStats", Format.Count(st.Files), Format.Count(st.Dirs), Format.Duration(st.Elapsed))
+            + (st.DeniedDirs > 0 ? Loc.S("ui.doneDenied", Format.Count(st.DeniedDirs)) : "");
+        ProgressPath.Text = _result.ScanPath;
+        StatusText.Text = Loc.S(st.Cancelled ? "ui.status.cancelled" : "ui.status.done");
+        StatusRight.Text = Loc.S("ui.status.right", Format.Count(st.Files), Format.Bytes(_result.Root.OnDisk))
+            + (_result.Elevated ? Loc.S("ui.status.admin") : "");
+    }
+
     private void Timer_Tick(object? sender, EventArgs e)
     {
         if (_engine is null) return;
         var el = DateTime.Now - _engine.Live.StartedAt;
-        ProgressText.Text = $"{Format.Count(_engine.FilesSoFar)} file  ·  {Format.Count(_engine.DirsSoFar)} cartelle  ·  {Format.Bytes(_engine.OnDiskSoFar)}  ·  {Format.Duration(el)}"
-            + (_engine.DeniedSoFar > 0 ? $"  ·  {_engine.DeniedSoFar} non accessibili" : "");
+        ProgressText.Text = Loc.S("ui.progress", Format.Count(_engine.FilesSoFar), Format.Count(_engine.DirsSoFar), Format.Bytes(_engine.OnDiskSoFar), Format.Duration(el))
+            + (_engine.DeniedSoFar > 0 ? Loc.S("ui.progress.denied", Format.Count(_engine.DeniedSoFar)) : "");
         ProgressPath.Text = _engine.CurrentPath;
     }
 
@@ -257,11 +279,12 @@ public partial class MainWindow : Window
         // Volume
         var v = r.Volume;
         VolumeText.Text = r.ScannedWholeVolume
-            ? $"{v.Display}   {Format.Bytes(v.UsedBytes)} usati su {Format.Bytes(v.TotalBytes)} ({Format.Percent((double)v.UsedBytes / Math.Max(1, v.TotalBytes))})   ·   {Format.Bytes(v.FreeBytes)} liberi"
-            : $"Cartella {r.ScanPath}   {Format.Bytes(r.Root.OnDisk)} su disco   ·   volume {v.Display}: {Format.Bytes(v.FreeBytes)} liberi su {Format.Bytes(v.TotalBytes)}";
+            ? Loc.S("ui.volume.line", v.Display, Format.Bytes(v.UsedBytes), Format.Bytes(v.TotalBytes),
+                    Format.Percent((double)v.UsedBytes / Math.Max(1, v.TotalBytes)), Format.Bytes(v.FreeBytes))
+            : Loc.S("ui.volume.folder", r.ScanPath, Format.Bytes(r.Root.OnDisk), v.Display, Format.Bytes(v.FreeBytes), Format.Bytes(v.TotalBytes));
         VolumeRight.Text = r.ScannedWholeVolume
-            ? $"trovati in file: {Format.Bytes(r.Root.OnDisk)}   ·   cluster {v.ClusterSize:N0} byte   ·   {v.Format}"
-            : $"{Format.Count(r.Stats.Files)} file · {Format.Count(r.Stats.Dirs)} cartelle";
+            ? Loc.S("ui.volume.right", Format.Bytes(r.Root.OnDisk), Format.Count(v.ClusterSize), v.Format)
+            : Loc.S("ui.volume.rightFolder", Format.Count(r.Stats.Files), Format.Count(r.Stats.Dirs));
         UpdateVolumeBar();
 
         // Cause
@@ -273,10 +296,10 @@ public partial class MainWindow : Window
             MainCauseName.Text = cat.Name;
             MainCauseSwatch.Background = Palette.Brush(cat.Family);
             MainCauseSize.Text = Format.Bytes(main.OnDisk);
-            MainCauseShare.Text = Format.Percent(main.Share) + (r.ScannedWholeVolume ? " dello spazio usato" : " della cartella");
+            MainCauseShare.Text = Format.Percent(main.Share) + Loc.S(r.ScannedWholeVolume ? "ui.shareOfUsed" : "ui.shareOfFolder");
             MainCauseBar.Background = Palette.Brush(cat.Family);
             MainCauseBar.Width = Math.Max(2, Math.Min(1, main.Share) * (MainCausePanel.ActualWidth > 0 ? MainCausePanel.ActualWidth : 320));
-            MainCauseFiles.Text = $"{Format.Count(main.Files)} file";
+            MainCauseFiles.Text = Loc.S("ui.nFiles", Format.Count(main.Files));
             MainCauseSafety.Content = cat.Safety;
             MainCauseDesc.Text = cat.Description;
             MainCauseAction.Text = cat.Action;
@@ -292,7 +315,7 @@ public partial class MainWindow : Window
 
         // File più grandi
         _allTopFileRows = a.TopFiles.Select(f => Row.FromFile(f, a.ReferenceBytes)).ToList();
-        var cats = new List<CatChoice> { new() { Id = null, Name = "Tutte le categorie" } };
+        var cats = new List<CatChoice> { new() { Id = null, Name = Loc.S("ui.allCategories") } };
         cats.AddRange(a.Causes.Select(c => new CatChoice { Id = c.Category.Id, Name = $"{c.Category.Name}  ({Format.Bytes(c.OnDisk)})" }));
         FileCatFilter.ItemsSource = cats;
         FileCatFilter.SelectedIndex = 0;
@@ -305,7 +328,7 @@ public partial class MainWindow : Window
 
         // Bilancio
         BalanceList.ItemsSource = a.Balance.Select(b => new BalanceRow { Line = b }).ToList();
-        DeniedHeader.Text = r.DeniedDirs.Count == 0 ? "Nessuna cartella non accessibile" : $"Cartelle non accessibili ({r.DeniedDirs.Count})";
+        DeniedHeader.Text = r.DeniedDirs.Count == 0 ? Loc.S("ui.deniedNone") : Loc.S("ui.deniedList", Format.Count(r.DeniedDirs.Count));
         DeniedList.ItemsSource = r.DeniedDirs.Select(d => Row.FromDir(d, 0)).ToList();
 
         // Dettaglio: parti dalla causa principale
@@ -350,8 +373,8 @@ public partial class MainWindow : Window
             if (i < chain.Count - 1) Breadcrumb.Children.Add(new TextBlock { Text = "›", Margin = new Thickness(4, 0, 4, 0), Foreground = (Brush)FindResource("MutedBrush"), VerticalAlignment = VerticalAlignment.Center });
         }
         var cat = Classifier.Get(dir.Cat);
-        DirSummary.Text = $"{Format.Bytes(dir.OnDisk)} su disco · {Format.Count(dir.FileCount)} file · {Format.Count(dir.DirCount)} cartelle · {cat.Name}"
-                        + (dir.DeniedCount > 0 ? $" · {dir.DeniedCount} non accessibili" : "");
+        DirSummary.Text = Loc.S("ui.dirSummary", Format.Bytes(dir.OnDisk), Format.Count(dir.FileCount), Format.Count(dir.DirCount), cat.Name)
+                        + (dir.DeniedCount > 0 ? Loc.S("ui.dirSummary.denied", Format.Count(dir.DeniedCount)) : "");
         BackButton.IsEnabled = _back.Count > 0;
         UpButton.IsEnabled = dir.Parent is not null;
 
@@ -368,7 +391,7 @@ public partial class MainWindow : Window
             items.Add(new TreemapItem
             {
                 Label = d.Name, Weight = d.OnDisk, Color = Palette.Color(Classifier.Get(d.Cat).Family), IsDir = true, Tag = d, Children = kids,
-                Tooltip = $"{d.FullPath}\n{Format.Bytes(d.OnDisk)} · {Format.Count(d.FileCount)} file\n{Classifier.Get(d.Cat).Name}"
+                Tooltip = Loc.S("tip.dir", d.FullPath, Format.Bytes(d.OnDisk), Format.Count(d.FileCount), Classifier.Get(d.Cat).Name)
             });
         }
         if (dir.Files is not null)
@@ -376,7 +399,7 @@ public partial class MainWindow : Window
                 items.Add(new TreemapItem
                 {
                     Label = f.Name, Weight = f.OnDisk, Color = Palette.Color(Classifier.Get(f.Cat).Family), IsDir = false, Tag = f,
-                    Tooltip = $"{f.FullPath}\n{Format.Bytes(f.OnDisk)}\n{Classifier.Describe(f)}\n{Classifier.Get(f.Cat).Name}"
+                    Tooltip = Loc.S("tip.file", f.FullPath, Format.Bytes(f.OnDisk), Format.Bytes(f.Size), Classifier.Describe(f), Classifier.Get(f.Cat).Name)
                 });
         Treemap.SetItems(items);
     }
@@ -467,7 +490,7 @@ public partial class MainWindow : Window
     private void RowCopy_Click(object sender, RoutedEventArgs e)
     {
         string? p = PathOf(MenuTarget(sender));
-        if (p is not null) { try { Clipboard.SetText(p); StatusText.Text = "Percorso copiato: " + p; } catch { } }
+        if (p is not null) { try { Clipboard.SetText(p); StatusText.Text = Loc.S("exp.copied", p); } catch { } }
     }
 
     private void RowProps_Click(object sender, RoutedEventArgs e)
@@ -493,9 +516,7 @@ public partial class MainWindow : Window
             byte causeCat = (CausePicker.SelectedItem as CauseRow)?.Cause.Category.Id ?? d.Cat;
             if (d.IsRoot || d.Cat != causeCat)
             {
-                MessageBox.Show(this,
-                    $"“{d.FullPath}” contiene file di questa causa ma anche altro (o è la radice dell'analisi): non si elimina in blocco.\n\nEntra nella cartella e scegli cosa eliminare.",
-                    "Sonda — elimina", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, Loc.S("del.group", d.FullPath), Loc.S("del.title"), MessageBoxButton.OK, MessageBoxImage.Information);
                 if (!d.IsReparse) { NavigateTo(d); Tabs.SelectedIndex = 0; }
                 return;
             }
@@ -507,7 +528,7 @@ public partial class MainWindow : Window
     private void DeleteSelectedFiles_Click(object sender, RoutedEventArgs e)
     {
         var rows = FileList.SelectedItems.OfType<Row>().ToList();
-        if (rows.Count == 0) { MessageBox.Show(this, "Seleziona prima uno o più file nella tabella.", "Sonda", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        if (rows.Count == 0) { MessageBox.Show(this, Loc.S("del.selectFirst"), Loc.S("app.name"), MessageBoxButton.OK, MessageBoxImage.Information); return; }
         DeleteRows(rows);
     }
 
@@ -516,32 +537,32 @@ public partial class MainWindow : Window
     private void DeleteRows(List<Row> rows)
     {
         if (rows.Count == 0) return;
-        if (_busy || _scanning) { StatusText.Text = "Attendi la fine dell'analisi prima di eliminare."; return; }
+        if (_busy || _scanning) { StatusText.Text = Loc.S("del.busy"); return; }
         if (rows.Any(r => r.Node is { IsRoot: true }))
         {
-            MessageBox.Show(this, "La radice dell'analisi non si elimina da qui: elimina le sottocartelle o i singoli file.", "Sonda — elimina", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, Loc.S("del.noRoot"), Loc.S("del.title"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         // blocca le cose che non vanno toccate
         var keep = rows.Where(r => r.Safety == Safety.Keep).ToList();
         long total = rows.Sum(r => r.OnDisk);
-        string what = rows.Count == 1 ? $"“{rows[0].Name}”" : $"{rows.Count} elementi";
+        string what = rows.Count == 1 ? $"“{rows[0].Name}”" : Loc.S("del.nItems", rows.Count);
         var sb = new System.Text.StringBuilder();
-        sb.Append($"Mandare nel Cestino {what} ({Format.Bytes(total)})?\n\n");
+        sb.Append(Loc.S("del.question", what, Format.Bytes(total)));
         foreach (var r in rows.Take(12)) sb.Append("  •  ").Append(r.Path).Append('\n');
-        if (rows.Count > 12) sb.Append($"  …e altri {rows.Count - 12}\n");
+        if (rows.Count > 12) sb.Append(Loc.S("del.more", rows.Count - 12));
         sb.Append('\n');
         if (keep.Count > 0)
-            sb.Append($"ATTENZIONE: {keep.Count} di questi appartengono a categorie da NON toccare ({string.Join(", ", keep.Select(k => k.CategoryName).Distinct().Take(3))}). Eliminarli può rompere Windows o i programmi.\n\n");
-        sb.Append("Questa è l'unica conferma. Gli elementi finiscono nel Cestino, da cui si possono recuperare (se troppo grandi per il Cestino, Windows avvisa prima di eliminarli definitivamente).");
-        var res = MessageBox.Show(this, sb.ToString(), "Sonda — elimina", MessageBoxButton.YesNo, keep.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Question, MessageBoxResult.No);
+            sb.Append(Loc.S("del.keepWarn", keep.Count, string.Join(", ", keep.Select(k => k.CategoryName).Distinct().Take(3))));
+        sb.Append(Loc.S("del.footer"));
+        var res = MessageBox.Show(this, sb.ToString(), Loc.S("del.title"), MessageBoxButton.YesNo, keep.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Question, MessageBoxResult.No);
         if (res != MessageBoxResult.Yes) return;
 
         var hwnd = new WindowInteropHelper(this).Handle;
         string? err = ShellOps.Recycle(hwnd, rows.Select(r => r.Path).ToList(), confirm: false);
         if (err is not null)
         {
-            MessageBox.Show(this, err, "Sonda — elimina", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, err, Loc.S("del.title"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         // Aggiorna il modello con quello che è sparito davvero
         int removed = 0; long freed = 0;
@@ -554,7 +575,7 @@ public partial class MainWindow : Window
         }
         if (removed > 0)
         {
-            StatusText.Text = $"Eliminati {removed} elementi ({Format.Bytes(freed)}) — nel Cestino.";
+            StatusText.Text = Loc.S("del.done", removed, Format.Bytes(freed));
             Reanalyze();
         }
     }
@@ -597,7 +618,7 @@ public partial class MainWindow : Window
             foreach (var b in back.Reverse()) if (StillInTree(b)) _back.Push(b);
             if (cur is not null && StillInTree(cur)) NavigateTo(cur, push: false);
         }
-        catch (Exception ex) { StatusText.Text = "Errore nel ricalcolo: " + ex.Message; }
+        catch (Exception ex) { StatusText.Text = Loc.S("del.recalcError", ex.Message); }
         finally { Mouse.OverrideCursor = null; _busy = false; }
     }
 
@@ -645,10 +666,10 @@ public partial class MainWindow : Window
         _settingPicker = false;
         var cat = c.Category;
         CauseSize.Text = Format.Bytes(c.OnDisk);
-        CauseShare.Text = $"{Format.Percent(c.Share)} · {Format.Count(c.Files)} file · posizione {c.Rank} su {_analysis?.Causes.Count}";
+        CauseShare.Text = Loc.S("ui.causeStats", Format.Percent(c.Share), Format.Count(c.Files), c.Rank, _analysis?.Causes.Count ?? 0);
         CauseSafety.Content = cat.Safety;
         CauseDesc.Text = cat.Description;
-        CauseAction.Text = "Come liberare spazio: " + cat.Action;
+        CauseAction.Text = Loc.S("ui.causeAction", cat.Action);
         GroupList.ItemsSource = c.TopGroups.Select(g => new GroupRow { Item = g, Share = c.OnDisk > 0 ? (double)g.OnDisk / c.OnDisk : 0 }).ToList();
         GridViewSort.Apply(GroupList);
         CauseFileList.ItemsSource = c.TopFiles.Select(f => Row.FromFile(f, c.OnDisk)).ToList();
@@ -675,7 +696,7 @@ public partial class MainWindow : Window
         var list = rows.ToList();
         FileList.ItemsSource = list;
         GridViewSort.Apply(FileList);
-        FilesSummary.Text = $"{list.Count} file mostrati (fra i {_allTopFileRows.Count} più grandi) · {Format.Bytes(list.Sum(r => r.OnDisk))}";
+        FilesSummary.Text = Loc.S("ui.filesSummary", Format.Count(list.Count), Format.Count(_allTopFileRows.Count), Format.Bytes(list.Sum(r => r.OnDisk)));
     }
 
     private void TypeList_DoubleClick(object sender, MouseButtonEventArgs e)
@@ -704,7 +725,7 @@ public partial class MainWindow : Window
         FileCatFilter.SelectedIndex = 0;
         FileFilter.Text = "";
         ApplyFileFilter();
-        FilesSummary.Text = $"Tipo “{tr.Label}”: i {files.Count} file più grandi · {Format.Bytes(files.Sum(x => x.OnDisk))}";
+        FilesSummary.Text = Loc.S("ui.typeSummary", tr.Label, Format.Count(files.Count), Format.Bytes(files.Sum(x => x.OnDisk)));
         Tabs.SelectedIndex = 1;
     }
 
@@ -716,32 +737,32 @@ public partial class MainWindow : Window
 
     private string? AskSave(string filter, string name)
     {
-        var dlg = new SaveFileDialog { Filter = filter, FileName = name, Title = "Esporta" };
+        var dlg = new SaveFileDialog { Filter = filter, FileName = name, Title = Loc.S("exp.title") };
         return dlg.ShowDialog(this) == true ? dlg.FileName : null;
     }
 
     private void ExportText_Click(object sender, RoutedEventArgs e)
     {
         if (_analysis is null) return;
-        var p = AskSave("Testo (*.txt)|*.txt", $"Sonda-{DateTime.Now:yyyyMMdd-HHmm}.txt");
+        var p = AskSave(Loc.S("exp.text"), $"Sonda-{DateTime.Now:yyyyMMdd-HHmm}.txt");
         if (p is null) return;
-        try { File.WriteAllText(p, Report.BuildText(_analysis, 300, 30), System.Text.Encoding.UTF8); StatusText.Text = "Rapporto salvato: " + p; ShellOps.RevealInExplorer(p); }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Esporta", MessageBoxButton.OK, MessageBoxImage.Error); }
+        try { File.WriteAllText(p, Report.BuildText(_analysis, 300, 30), System.Text.Encoding.UTF8); StatusText.Text = Loc.S("exp.saved", p); ShellOps.RevealInExplorer(p); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Loc.S("exp.title"), MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void ExportFilesCsv_Click(object sender, RoutedEventArgs e)
     {
         if (_analysis is null) return;
-        var p = AskSave("CSV (*.csv)|*.csv", $"Sonda-file-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+        var p = AskSave(Loc.S("exp.csv"), $"Sonda-file-{DateTime.Now:yyyyMMdd-HHmm}.csv");
         if (p is null) return;
-        try { Report.WriteFilesCsv(p, _analysis.TopFiles); StatusText.Text = "CSV salvato: " + p; ShellOps.RevealInExplorer(p); }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Esporta", MessageBoxButton.OK, MessageBoxImage.Error); }
+        try { Report.WriteFilesCsv(p, _analysis.TopFiles); StatusText.Text = Loc.S("exp.savedCsv", p); ShellOps.RevealInExplorer(p); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Loc.S("exp.title"), MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void ExportDirsCsv_Click(object sender, RoutedEventArgs e)
     {
         if (_result is null) return;
-        var p = AskSave("CSV (*.csv)|*.csv", $"Sonda-cartelle-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+        var p = AskSave(Loc.S("exp.csv"), $"Sonda-cartelle-{DateTime.Now:yyyyMMdd-HHmm}.csv");
         if (p is null) return;
         try
         {
@@ -750,18 +771,54 @@ public partial class MainWindow : Window
             while (stack.Count > 0) { var d = stack.Pop(); dirs.Add(d); foreach (var c in d.Dirs) stack.Push(c); }
             dirs.Sort((a, b) => b.OnDisk.CompareTo(a.OnDisk));
             Report.WriteDirsCsv(p, dirs.Take(20000));
-            StatusText.Text = "CSV salvato: " + p; ShellOps.RevealInExplorer(p);
+            StatusText.Text = Loc.S("exp.savedCsv", p); ShellOps.RevealInExplorer(p);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Esporta", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Loc.S("exp.title"), MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void ExportCausesCsv_Click(object sender, RoutedEventArgs e)
     {
         if (_analysis is null) return;
-        var p = AskSave("CSV (*.csv)|*.csv", $"Sonda-cause-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+        var p = AskSave(Loc.S("exp.csv"), $"Sonda-cause-{DateTime.Now:yyyyMMdd-HHmm}.csv");
         if (p is null) return;
-        try { Report.WriteCausesCsv(p, _analysis); StatusText.Text = "CSV salvato: " + p; ShellOps.RevealInExplorer(p); }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Esporta", MessageBoxButton.OK, MessageBoxImage.Error); }
+        try { Report.WriteCausesCsv(p, _analysis); StatusText.Text = Loc.S("exp.savedCsv", p); ShellOps.RevealInExplorer(p); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Loc.S("exp.title"), MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    // ------------------------------------------------------------ impostazioni e lingua
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SettingsWindow { Owner = this };
+        dlg.ShowDialog();
+        if (dlg.LanguageChanged) RebuildForLanguage();
+    }
+
+    /// <summary>
+    /// Ricostruisce la finestra nella nuova lingua. Le stringhe del XAML si risolvono quando la finestra
+    /// viene creata, quindi si crea una finestra nuova; il risultato della scansione viene passato così com'è
+    /// (l'albero non contiene testo tradotto: nomi e descrizioni si leggono dalle chiavi al momento).
+    /// </summary>
+    private MainWindow RebuildForLanguage()
+    {
+        var w = new MainWindow(null)
+        {
+            Left = Left, Top = Top, Width = Width, Height = Height, WindowState = WindowState,
+            _result = _result, _analysis = _analysis,
+        };
+        var app = Application.Current;
+        if (app is not null) app.MainWindow = w;
+        w.Show();
+        // La vecchia finestra si chiude dopo: senza questo, chiudendo l'ultima finestra l'app terminerebbe.
+        Closing -= OnClosing;
+        Close();
+        if (w._result is not null && w._analysis is not null)
+        {
+            w.ExportButton.IsEnabled = true;
+            w.PopulateAll();
+            w.SelectPath(w._result.ScanPath);
+            w.ShowScanSummary();
+        }
+        return w;
     }
 
     // ------------------------------------------------------------ elevazione

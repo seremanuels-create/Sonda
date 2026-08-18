@@ -1,98 +1,105 @@
-# Sonda — dove è finito lo spazio del disco
+# Sonda — where your disk space went
 
-Analizzatore dello spazio su disco per Windows: dice **cosa** occupa spazio, **dove** sta, **cos'è** e **come si libera**, mettendo la causa principale in primo piano e tutte le altre in ordine di peso.
+*[Leggi in italiano](README.it.md)*
 
-Non è l'ennesimo albero di cartelle: ogni file viene classificato in una *causa* (giochi, cache dei browser, dipendenze dei progetti, punti di ripristino, ibernazione…) con una spiegazione in italiano e un livello di sicurezza — **eliminabile**, **da valutare**, **non toccare**.
+A disk space analyser for Windows that tells you **what** is using the space, **where** it lives, **what it is** and **how to free it** — putting the main cause in the foreground and every other cause right behind it, heaviest first.
 
-![Schermata di Sonda](docs/schermata.png)
+It is not yet another folder tree: every file is sorted into a *cause* (games, browser caches, project dependencies, restore points, hibernation…) with a plain-language explanation and a safety level — **safe to delete**, **your call**, **leave alone**.
 
-- **Windows 10/11 a 64 bit.** Nessuna dipendenza: l'eseguibile portable contiene già il runtime .NET.
-- Un disco da un milione di file si legge in **5–15 secondi** su SSD.
-- Licenza MIT.
+![Sonda screenshot](docs/screenshot.png)
 
-## Scarica
+- **Windows 10/11, 64-bit.** No dependencies: the portable executable already contains the .NET runtime.
+- A drive with a million files is read in **5–15 seconds** on an SSD.
+- Interface in **English and Italian** (Settings → Language), MIT licensed.
 
-Nella pagina [Releases](../../releases):
+## Download
 
-- `Sonda-<versione>-portable.zip` — estrai ed esegui `Sonda.exe`, non installa nulla e non scrive nel registro;
-- `Sonda-<versione>-Setup.exe` — installer (per utente, senza richiesta di amministratore).
+From the [Releases](../../releases) page:
 
-I binari non sono firmati: al primo avvio SmartScreen può avvisare ("editore sconosciuto") → *Ulteriori informazioni → Esegui comunque*.
+- `Sonda-<version>-portable.zip` — unzip and run `Sonda.exe`; it installs nothing and writes nothing to the registry;
+- `Sonda-<version>-Setup.exe` — installer (per-user, no administrator prompt).
 
-## Cosa mostra
+The binaries are not code-signed: on first run SmartScreen may warn about an "unknown publisher" → *More info → Run anyway*.
 
-| Zona | Cosa c'è |
+## What it shows
+
+| Area | What is there |
 |---|---|
-| **Causa principale** (a sinistra, in alto) | La categoria che pesa di più: quanto occupa, quota sullo spazio usato, cos'è, come si libera, livello di sicurezza e le cartelle più pesanti al suo interno. |
-| **Altre cause** | Tutte le altre in ordine di peso, con barra proporzionale. Clic → dettaglio. |
-| **Cartelle** | Esploratore ordinato per dimensione con breadcrumb: su disco, quota, numero di file, tipo, categoria, sicurezza, data, note (giunzione, accesso negato, file cloud). Sotto, la **mappa** (treemap) della cartella. |
-| **File più grandi** | I 2000 file più grandi, filtrabili per testo e categoria; ogni riga dice cos'è, dove sta, a che causa appartiene, se si può eliminare. Selezione multipla → Cestino. |
-| **Dettaglio causa** | Per ogni causa: cartelle più pesanti (doppio clic per entrarci) e file più grandi. |
-| **Tipi di file** | Cosa sono i file (video, audio, librerie, dischi virtuali, cache…) indipendentemente da dove stanno. |
-| **Bilancio** | Spazio usato secondo Windows contro spazio trovato nei file: MFT (letta dal volume o stimata), copie shadow (WMI), cartelle non accessibili, giunzioni saltate, e quanto resta "non attribuito" con la spiegazione del perché. |
+| **Main cause** (top left) | The heaviest category: how much it takes, its share of the used space, what it is, how to free it, its safety level, and the heaviest folders inside it. |
+| **Other causes** | Every other category, heaviest first, with a proportional bar. Click one for the detail. |
+| **Folders** | A size-ordered explorer with breadcrumbs: on disk, share, file count, type, category, safety, date, notes (junction, access denied, cloud file). Below it, a **treemap** of the current folder. |
+| **Biggest files** | The 2000 biggest files, filterable by text and category; each row says what it is, where it lives, which cause it belongs to and whether it is safe to delete. Multi-select → Recycle Bin. |
+| **Cause detail** | Per cause: heaviest folders (double-click to enter) and biggest files. |
+| **File types** | What the space-eating files actually are (video, audio, libraries, virtual disks, caches…), wherever they live. |
+| **Balance** | The space Windows calls "used" against the space found in files: MFT (read from the volume or estimated), shadow copies (WMI), inaccessible folders, skipped junctions, and whatever is left "unattributed", with the reason why. |
 
-Tasto destro su qualsiasi riga: apri in Esplora risorse, mostra nella cartella, entra, copia percorso, proprietà, **elimina** (nel Cestino, con conferma e avviso se la categoria è "non toccare").
+Right-click any row: open in File Explorer, show in folder, enter, copy path, properties, **delete** (to the Recycle Bin, with a confirmation and a warning when the category is "leave alone").
 
-## Come sono calcolate le dimensioni
+## How sizes are computed
 
-La colonna principale è **su disco**: i byte davvero occupati dal volume.
+The main column is **on disk**: the bytes the volume actually gives up.
 
-- Dimensione arrotondata al cluster; su NTFS i file fino a ~700 byte contano 0 (risiedono nel record MFT).
-- File compressi NTFS e sparse: dimensione allocata reale (`GetCompressedFileSize`).
-- Segnaposto cloud (OneDrive "solo online"): contano per lo spazio locale, cioè in pratica zero. I file `RECALL_ON_OPEN` non vengono aperti, per non provocarne lo scaricamento.
-- Giunzioni e collegamenti simbolici **non** vengono seguiti: il contenuto è contato dove sta davvero. I reparse point cloud/WCI/ProjFS sì.
-- `Windows\WinSxS` è mostrato **lordo**: molti file sono hard link condivisi con `System32`, quindi lo spazio reale è inferiore. L'app lo dice nella descrizione della categoria.
+- Sizes are rounded up to the cluster; on NTFS, files up to ~700 bytes count as 0 (they live inside the MFT record).
+- NTFS-compressed and sparse files: real allocated size (`GetCompressedFileSize`).
+- Cloud placeholders (OneDrive "online-only"): counted for their local footprint, which is usually zero. `RECALL_ON_OPEN` files are never opened, so nothing is downloaded behind your back.
+- Junctions and symbolic links are **not** followed: their content is counted where it really lives. Cloud/WCI/ProjFS reparse points are.
+- `Windows\WinSxS` is shown **gross**: many of its files are hard links shared with `System32`, so the real figure is lower. The app says so in the category description.
 
-Le etichette di sicurezza sono euristiche per categoria e percorso: guarda sempre il percorso prima di eliminare. Tutto passa dal Cestino.
+Safety labels are heuristics based on category and path: always look at the path before deleting. Everything goes through the Recycle Bin.
 
-## Riga di comando
+## Command line
 
 ```
-Sonda.exe C:\                              apre l'interfaccia e analizza subito
-Sonda.exe --report C:\ --out rapporto.txt  rapporto completo in testo, senza finestra
-Sonda.exe --report C:\ --csv cartella      + tre CSV (file più grandi, cartelle, cause)
+Sonda.exe C:\                              open the UI and start analysing
+Sonda.exe --report C:\ --out report.txt    full text report, no window
+Sonda.exe --report C:\ --csv folder        plus three CSV files (biggest files, folders, causes)
+Sonda.exe --report C:\ --lang en           force the language for this run (it | en)
 ```
 
-## Compilare
+## Building
 
-Serve l'[SDK .NET 9](https://dotnet.microsoft.com/download) (`winget install Microsoft.DotNet.SDK.9`); per l'installer anche [Inno Setup 6](https://jrsoftware.org/isdl.php).
+You need the [.NET 9 SDK](https://dotnet.microsoft.com/download) (`winget install Microsoft.DotNet.SDK.9`); for the installer also [Inno Setup 6](https://jrsoftware.org/isdl.php).
 
 ```powershell
-.\build.ps1                # portable single-file + zip + installer, in dist\
-.\build.ps1 -SoloPortable  # solo l'eseguibile
+.\build.ps1                # portable single-file + zip + installer, into dist\
+.\build.ps1 -SoloPortable  # just the executable
 ```
 
-Per lo sviluppo, usando il runtime già installato:
+For development, using the runtime already installed:
 
 ```powershell
 dotnet build -c Debug -p:SelfContained=false -p:PublishSingleFile=false
 .\bin\Debug\net9.0-windows\win-x64\Sonda.exe C:\
 ```
 
-Firma Authenticode (facoltativa): `.\build.ps1 -Firma` usa gli script indicati dalle variabili d'ambiente `SONDA_FIRMA_PS1` (firma i binari) e `SONDA_FIRMA_CMD` (chiamato da Inno Setup per setup e disinstallatore).
+Authenticode signing is optional: `.\build.ps1 -Firma` uses the scripts named by the `SONDA_FIRMA_PS1` (signs the binaries) and `SONDA_FIRMA_CMD` (called by Inno Setup for the setup and the uninstaller) environment variables.
 
-## Com'è fatto
+## How it is built
 
 ```
-Core\   Native.cs (Win32), Model.cs, Scanner.cs (scansione parallela), Classifier.cs (categorie, tipi, regole),
-        Analysis.cs (cause, top file, tipi, bilancio), ShadowStorage.cs (WMI), Report.cs (testo/CSV),
-        ShellOps.cs (Esplora risorse, Cestino, elevazione), Format.cs
-UI\     Theme.xaml, Converters.cs, Rows.cs (righe e ordinamento colonne), TreemapControl.cs (treemap squarified)
+Core\   Native.cs (Win32), Model.cs, Scanner.cs (parallel scan), Classifier.cs (categories, types, rules),
+        Analysis.cs (causes, top files, types, balance), ShadowStorage.cs (WMI), Report.cs (text/CSV),
+        ShellOps.cs (Explorer, Recycle Bin, elevation), Format.cs, Loc.cs + Strings.It.cs / Strings.En.cs
+UI\     Theme.xaml, Converters.cs, Rows.cs (rows and column sorting), TreemapControl.cs (squarified treemap)
 ```
 
-La scansione mette ogni cartella in coda e la fa enumerare da N thread con `FileSystemEnumerable` (una chiamata al kernel per blocco di voci, senza `stat` per file), usando percorsi estesi `\\?\` per superare il limite dei 260 caratteri.
+The scanner queues every folder and hands it to N threads using `FileSystemEnumerable` (one kernel call per block of entries, no `stat` per file), with extended `\\?\` paths so the 260-character limit does not apply.
 
-## Aggiungere una regola di classificazione
+## Adding a classification rule
 
-Tutto in `Core/Classifier.cs`:
+Everything lives in `Core/Classifier.cs`:
 
-- `Categories` — id, nome, famiglia (colore), sicurezza, descrizione ("cos'è"), azione ("come liberare");
-- `RootRules` — percorsi ancorati alla radice del volume, minuscoli; `*` = un segmento qualsiasi, `xxx*` = prefisso. L'ultimo numero indica quanti segmenti sotto l'ancora formano il "gruppo" mostrato nel dettaglio causa;
-- `AnywhereRules` — nomi di cartella validi ovunque (`node_modules`, `.git`, `cache`…), limitati ai contesti in cui hanno senso;
-- tipi di file: `Ext(etichetta, descrizione, estensioni…)` nel costruttore statico (ogni estensione va dichiarata una volta sola: un duplicato genera un errore all'avvio).
+- `Categories` — id, key, family (colour), safety level. Name, description and action come from the string tables;
+- `RootRules` — paths anchored at the volume root, lowercase; `*` matches one segment, `xxx*` matches a prefix. The trailing number says how many segments below the anchor form the "group" shown in the cause detail;
+- `AnywhereRules` — folder names that count anywhere (`node_modules`, `.git`, `cache`…), restricted to the contexts where they make sense;
+- file types: `Ext(key, extensions…)` in the static constructor (each extension may be declared once only — a duplicate throws at startup).
 
-I contributi sono benvenuti, soprattutto nuove regole per programmi e giochi che occupano molto spazio.
+## Translating
 
-## Licenza
+`Core/Strings.It.cs` and `Core/Strings.En.cs` hold the same ~420 keys. To add a language: copy one of the files, translate the values, add the entry to the `Lang` enum and to the picker in `SettingsWindow`. Missing keys fall back to Italian, so a partial translation still runs.
+
+Contributions are welcome, especially new rules for programs and games that eat a lot of space.
+
+## Licence
 
 [MIT](LICENSE) — © 2026 StarVerb Audio.

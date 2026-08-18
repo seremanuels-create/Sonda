@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Markup;
@@ -12,14 +11,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Numeri e date all'italiana in tutta l'interfaccia
-        var it = CultureInfo.GetCultureInfo("it-IT");
-        CultureInfo.DefaultThreadCurrentCulture = it;
-        CultureInfo.DefaultThreadCurrentUICulture = it;
-        Thread.CurrentThread.CurrentCulture = it;
-        Thread.CurrentThread.CurrentUICulture = it;
+        // Lingua salvata (o quella di Windows): decide stringhe, numeri e date.
+        // "--lang it|en" la forza solo per questa esecuzione (utile per i rapporti da riga di comando).
+        Loc.LoadSettings();
+        if (ArgValue(e.Args, "--lang") is string lang)
+        {
+            if (lang.StartsWith("it", StringComparison.OrdinalIgnoreCase)) Loc.Apply(Lang.Italiano);
+            else if (lang.StartsWith("en", StringComparison.OrdinalIgnoreCase)) Loc.Apply(Lang.English);
+        }
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement),
-            new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(it.IetfLanguageTag)));
+            new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(Loc.Culture.IetfLanguageTag)));
 
         // Modalita' rapporto da riga di comando:
         //   Sonda.exe --report C:\ [--out rapporto.txt] [--csv cartella]
@@ -44,6 +45,8 @@ public partial class App : Application
         // Diagnostica: --shot file.png [--tab N]  analizza, salva l'immagine della finestra ed esce
         var win = new MainWindow(initialPath) { ShotPath = ArgValue(args, "--shot") };
         if (int.TryParse(ArgValue(args, "--tab"), out int tab)) win.ShotTab = tab;
+        if (ArgValue(args, "--relang") is string rl)
+            win.ShotRelang = rl.StartsWith("it", StringComparison.OrdinalIgnoreCase) ? Lang.Italiano : Lang.English;
         MainWindow = win;
         win.Show();
     }
@@ -56,7 +59,7 @@ public partial class App : Application
         string? csvDir = ArgValue(args, "--csv");
 
         var engine = new ScanEngine();
-        Console.Error.WriteLine($"Sonda: analisi di {path} ...");
+        Console.Error.WriteLine(Loc.S("rep.cliScanning", path));
         var result = engine.Run(path, CancellationToken.None);
         var analysis = Analysis.Build(result);
         string text = Report.BuildText(analysis, topFiles: 200, topGroups: 25);
@@ -75,7 +78,7 @@ public partial class App : Application
             dirs.Sort((a, b) => b.OnDisk.CompareTo(a.OnDisk));
             Report.WriteDirsCsv(Path.Combine(csvDir, "cartelle.csv"), dirs.Take(5000));
         }
-        Console.Error.WriteLine($"Sonda: fatto in {Format.Duration(result.Stats.Elapsed)} ({Format.Count(result.Stats.Files)} file).");
+        Console.Error.WriteLine(Loc.S("rep.cliDone", Format.Duration(result.Stats.Elapsed), Format.Count(result.Stats.Files)));
     }
 
     private static string? ArgValue(string[] args, string name)

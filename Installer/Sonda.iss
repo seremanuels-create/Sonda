@@ -78,7 +78,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#PortableDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}\..\LEGGIMI.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "{#SourcePath}\..\LEGGIMI.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme; Languages: italian
+Source: "{#SourcePath}\..\README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme; Languages: english
+Source: "{#SourcePath}\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"

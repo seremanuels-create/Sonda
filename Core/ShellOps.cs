@@ -62,37 +62,35 @@ public static class ShellOps
     public static string? Recycle(IntPtr owner, IReadOnlyList<string> paths, bool confirm = true)
     {
         int rc = Native.SendToRecycleBin(owner, paths, confirm, out bool aborted);
-        if (aborted) return "Operazione annullata.";
+        if (aborted) return Loc.S("shell.cancelled");
         if (rc == 0) return null;
         // Codici DE_* di SHFileOperation (shellapi.h)
         return rc switch
         {
-            0x71 => "Origine e destinazione coincidono (DE_SAMEFILE).",
-            0x72 => "Più origini per una sola destinazione.",
-            0x73 => "Le cartelle sono su volumi diversi.",
-            0x74 => "Non si può eliminare la radice di un disco (DE_ROOTDIR).",
-            0x75 => "Annullato dall'utente.",
-            0x76 => "La destinazione è una sottocartella dell'origine.",
-            0x78 => "Accesso negato all'origine: serve avviare come amministratore o il file è protetto (DE_ACCESSDENIEDSRC).",
-            0x79 => "Percorso troppo lungo (DE_PATHTOODEEP).",
-            0x7A => "Percorso non valido o unità inesistente.",
-            0x7C => "Percorso non valido (DE_INVALIDFILES).",
-            0x7D => "La destinazione è uguale all'origine.",
-            0x7E => "Il file esiste già nella destinazione.",
-            0x80 => "La destinazione è una cartella, non un file (DE_FILEDESTISFLD).",
-            0x81 => "Nome file troppo lungo.",
-            0x82 => "Il disco è in sola lettura (CD-ROM).",
-            0x83 => "Il disco è in sola lettura (DVD).",
-            0x84 => "Il disco è in sola lettura (CD-R).",
-            0x85 => "Il file è più grande di quanto il file system ammetta.",
-            0x86 => "Errore di accesso all'origine.",
-            0x87 => "Errore di accesso alla destinazione.",
-            0x88 => "Il file è in uso da un altro programma o l'operazione non è ammessa.",
-            0x10000 => "Errore di lettura/scrittura del disco.",
-            5 => "Accesso negato: serve avviare come amministratore.",
-            2 => "File non trovato (forse già eliminato).",
-            32 => "Il file è in uso da un altro programma.",
-            _ => $"Errore della shell (codice 0x{rc:X}).",
+            0x71 => Loc.S("shell.sameFile"),
+            0x72 => Loc.S("shell.manySrc"),
+            0x73 => Loc.S("shell.diffVolumes"),
+            0x74 => Loc.S("shell.rootDir"),
+            0x75 => Loc.S("shell.userCancel"),
+            0x76 => Loc.S("shell.destSubtree"),
+            0x78 => Loc.S("shell.accessSrc"),
+            0x79 => Loc.S("shell.pathTooDeep"),
+            0x7A => Loc.S("shell.badPath"),
+            0x7C => Loc.S("shell.invalidFiles"),
+            0x7D => Loc.S("shell.sameDest"),
+            0x7E => Loc.S("shell.exists"),
+            0x80 => Loc.S("shell.destIsFolder"),
+            0x81 => Loc.S("shell.nameTooLong"),
+            0x82 or 0x83 or 0x84 => Loc.S("shell.readOnly"),
+            0x85 => Loc.S("shell.tooBig"),
+            0x86 => Loc.S("shell.srcError"),
+            0x87 => Loc.S("shell.dstError"),
+            0x88 => Loc.S("shell.inUse2"),
+            0x10000 => Loc.S("shell.diskError"),
+            5 => Loc.S("shell.denied"),
+            2 => Loc.S("shell.notFound"),
+            32 => Loc.S("shell.inUse"),
+            _ => Loc.S("shell.generic", rc.ToString("X")),
         };
     }
 

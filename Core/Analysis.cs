@@ -132,7 +132,7 @@ public sealed class Analysis
                 if (!typeDisk.TryGetValue(f.TypeId, out var ts)) { ts = new TypeStat { Type = Classifier.GetType(f.TypeId) }; typeDisk[f.TypeId] = ts; }
                 ts.OnDisk += od; ts.Size += f.Size; ts.Files++;
                 string ext = f.Extension;
-                if (ext.Length == 0) ext = "(nessuna)";
+                if (ext.Length == 0) ext = Loc.S("ext.none");
                 if (!extDisk.TryGetValue(ext, out var es)) { es = new ExtStat { Extension = ext, Type = ts.Type }; extDisk[ext] = es; }
                 es.OnDisk += od; es.Files++;
             }
@@ -198,18 +198,29 @@ public sealed class Analysis
         var b = Balance;
         if (!s.ScannedWholeVolume)
         {
-            b.Add(new BalanceLine { Label = "Cartella analizzata", Bytes = s.Root.OnDisk, Note = s.ScanPath, IsTotal = true });
-            b.Add(new BalanceLine { Label = "Nota", Bytes = null, Note = "Il bilancio completo (spazio usato del volume contro spazio trovato) è disponibile solo analizzando l'intero volume." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.folder"), Bytes = s.Root.OnDisk, Note = s.ScanPath, IsTotal = true });
+            b.Add(new BalanceLine { Label = Loc.S("bal.folder.note"), Bytes = null, Note = Loc.S("bal.folder.noteText") });
             return;
         }
 
         long used = v.UsedBytes;
-        b.Add(new BalanceLine { Label = "Spazio usato sul volume", Bytes = used, Note = $"Totale {Format.Bytes(v.TotalBytes)}, liberi {Format.Bytes(v.FreeBytes)}. È il numero di Windows.", IsTotal = true });
-        b.Add(new BalanceLine { Label = "File trovati (su disco)", Bytes = s.Root.OnDisk, Note = $"{s.Stats.Files:N0} file in {s.Stats.Dirs:N0} cartelle. Dimensione logica {Format.Bytes(s.Root.Size)}: la differenza è l'arrotondamento al cluster ({v.ClusterSize:N0} byte) meno i file compressi/sparse." });
+        b.Add(new BalanceLine
+        {
+            Label = Loc.S("bal.used"),
+            Bytes = used,
+            Note = Loc.S("bal.used.note", Format.Bytes(v.TotalBytes), Format.Bytes(v.FreeBytes)),
+            IsTotal = true
+        });
+        b.Add(new BalanceLine
+        {
+            Label = Loc.S("bal.found"),
+            Bytes = s.Root.OnDisk,
+            Note = Loc.S("bal.found.note", Format.Count(s.Stats.Files), Format.Count(s.Stats.Dirs), Format.Bytes(s.Root.Size), Format.Count(v.ClusterSize))
+        });
 
         if (s.Stats.Cancelled)
         {
-            b.Add(new BalanceLine { Label = "Scansione interrotta", Bytes = null, Note = "I file trovati sono parziali: il bilancio non torna per costruzione. Rilancia l'analisi completa per una risposta.", IsWarning = true });
+            b.Add(new BalanceLine { Label = Loc.S("bal.cancelled"), Bytes = null, Note = Loc.S("bal.cancelled.note"), IsWarning = true });
             return;
         }
 
@@ -219,52 +230,50 @@ public sealed class Analysis
         if (Native.TryGetMftSize(v.RootPath, out long mft, out long reserved))
         {
             MftBytes = mft;
-            b.Add(new BalanceLine { Label = "Metadati NTFS (MFT)", Bytes = mft, Note = "Tabella dei file: circa 1 KB per ogni file e cartella. Dato reale letto dal volume." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.mft"), Bytes = mft, Note = Loc.S("bal.mft.note") });
             explained += mft;
         }
         else if (ntfs)
         {
             long est = (s.Stats.Files + s.Stats.Dirs) * 1024;
-            b.Add(new BalanceLine { Label = "Metadati NTFS (MFT, stima)", Bytes = est, Note = "Stima: 1 KB per ogni file e cartella (il dato reale si legge solo da amministratore)." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.mftEst"), Bytes = est, Note = Loc.S("bal.mftEst.note") });
             explained += est;
         }
         else
         {
-            b.Add(new BalanceLine { Label = $"Metadati del file system ({v.Format})", Bytes = null, Note = "Su un volume non NTFS i metadati non si stimano; di solito sono trascurabili." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.fsMeta", v.Format), Bytes = null, Note = Loc.S("bal.fsMeta.note") });
         }
 
         if (s.ShadowStorageBytes is long sh)
         {
-            b.Add(new BalanceLine { Label = "Copie shadow / punti di ripristino", Bytes = sh, Note = s.ShadowStorageNote ?? "" });
+            b.Add(new BalanceLine { Label = Loc.S("bal.shadow"), Bytes = sh, Note = s.ShadowStorageNote ?? "" });
             explained += sh;
         }
         else
         {
-            b.Add(new BalanceLine { Label = "Copie shadow / punti di ripristino", Bytes = null, Note = s.ShadowStorageNote ?? "Non determinato.", IsWarning = !s.Elevated });
+            b.Add(new BalanceLine { Label = Loc.S("bal.shadow"), Bytes = null, Note = s.ShadowStorageNote ?? Loc.S("bal.shadow.unknown"), IsWarning = !s.Elevated });
         }
 
         if (s.Stats.DeniedDirs > 0)
         {
             b.Add(new BalanceLine
             {
-                Label = $"Cartelle non accessibili ({s.Stats.DeniedDirs:N0})",
+                Label = Loc.S("bal.denied", Format.Count(s.Stats.DeniedDirs)),
                 Bytes = null,
-                Note = s.Elevated
-                    ? "Contenuto sconosciuto anche da amministratore (cartelle protette dal sistema)."
-                    : "Contenuto sconosciuto: System Volume Information, profili di altri utenti, cartelle protette. Riavvia come amministratore per leggerle.",
+                Note = s.Elevated ? Loc.S("bal.denied.admin") : Loc.S("bal.denied.user"),
                 IsWarning = true
             });
         }
         if (s.Stats.ReparseDirs > 0)
-            b.Add(new BalanceLine { Label = $"Giunzioni e collegamenti saltati ({s.Stats.ReparseDirs:N0})", Bytes = null, Note = "Puntano ad altre cartelle: il contenuto è contato dove sta davvero (o su un altro volume). Non è spazio in più." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.reparse", Format.Count(s.Stats.ReparseDirs)), Bytes = null, Note = Loc.S("bal.reparse.note") });
         if (s.Stats.CloudPlaceholders > 0)
-            b.Add(new BalanceLine { Label = $"File cloud solo online ({s.Stats.CloudPlaceholders:N0})", Bytes = null, Note = "Segnaposto di OneDrive & simili: contati per lo spazio che occupano davvero sul disco (spesso zero)." });
+            b.Add(new BalanceLine { Label = Loc.S("bal.cloud", Format.Count(s.Stats.CloudPlaceholders)), Bytes = null, Note = Loc.S("bal.cloud.note") });
 
         long diff = used - explained;
         if (diff >= 0)
         {
             string note;
-            bool warn;
+            bool warn = diff >= used * 0.02;
             if (s.Stats.DeniedDirs > 0)
             {
                 // le più grosse fra le cartelle non accessibili, per dare un indizio concreto
@@ -273,29 +282,20 @@ public sealed class Analysis
                              || p.EndsWith("System Volume Information", StringComparison.OrdinalIgnoreCase)
                              || p.Contains("\\Users\\", StringComparison.OrdinalIgnoreCase) && p.Count(c => c == '\\') == 2)
                     .Take(3).ToList();
-                note = $"Sta quasi certamente nelle {s.Stats.DeniedDirs} cartelle non accessibili"
-                     + (hints.Count > 0 ? $" (es. {string.Join(", ", hints)})" : "")
-                     + (s.Elevated ? "." : ": riavvia come amministratore per attribuirlo.")
-                     + " Il resto sono cluster parziali, indici delle cartelle e file aperti in esclusiva.";
-                warn = diff >= used * 0.02;
+                note = Loc.S("bal.unattributed.denied",
+                    Format.Count(s.Stats.DeniedDirs),
+                    hints.Count > 0 ? Loc.S("bal.unattributed.hints", string.Join(", ", hints)) : "",
+                    s.Elevated ? Loc.S("bal.unattributed.dot") : Loc.S("bal.unattributed.elevate"));
             }
             else
             {
-                note = diff < used * 0.02
-                    ? "Fisiologico: cluster parziali, indici delle cartelle, file aperti in esclusiva, spazio cambiato durante la scansione."
-                    : "Spazio non attribuibile a file: copie shadow non lette, file aperti in modo esclusivo, o spazio cambiato durante la scansione.";
-                warn = diff >= used * 0.02;
+                note = warn ? Loc.S("bal.unattributed.big") : Loc.S("bal.unattributed.small");
             }
-            b.Add(new BalanceLine { Label = "Non attribuito", Bytes = diff, Note = note, IsWarning = warn });
+            b.Add(new BalanceLine { Label = Loc.S("bal.unattributed"), Bytes = diff, Note = note, IsWarning = warn });
         }
         else
         {
-            b.Add(new BalanceLine
-            {
-                Label = "Contato più dello spazio usato",
-                Bytes = -diff,
-                Note = "Normale su Windows: gli hard link fanno comparire lo stesso file in più cartelle (WinSxS e System32 condividono migliaia di file). Lo spazio reale è quello usato dal volume; le voci Windows sono da leggere come limite superiore.",
-            });
+            b.Add(new BalanceLine { Label = Loc.S("bal.over"), Bytes = -diff, Note = Loc.S("bal.over.note") });
         }
     }
 }

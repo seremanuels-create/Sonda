@@ -16,21 +16,27 @@ public enum Family : byte { Other = 0, Windows, Programs, AppData, Personal, Dev
 public sealed class Category
 {
     public required byte Id { get; init; }
-    public required string Name { get; init; }
+    /// <summary>Chiave nelle tabelle delle stringhe: "cat.&lt;chiave&gt;.name/.desc/.action".</summary>
+    public required string Key { get; init; }
     public required Family Family { get; init; }
-    /// <summary>Cos'è.</summary>
-    public required string Description { get; init; }
-    /// <summary>Come si libera spazio.</summary>
-    public required string Action { get; init; }
     public required Safety Safety { get; init; }
+
+    public string Name => Loc.S($"cat.{Key}.name");
+    /// <summary>Cos'è.</summary>
+    public string Description => Loc.S($"cat.{Key}.desc");
+    /// <summary>Come si libera spazio.</summary>
+    public string Action => Loc.S($"cat.{Key}.action");
     public override string ToString() => Name;
 }
 
 public sealed class FileType
 {
     public required ushort Id { get; init; }
-    public required string Label { get; init; }      // es. "Video", "Disco virtuale"
-    public required string Detail { get; init; }     // es. "File video MP4"
+    /// <summary>Chiave nelle tabelle delle stringhe: "type.&lt;chiave&gt;.label/.detail".</summary>
+    public required string Key { get; init; }
+
+    public string Label => Loc.S($"type.{Key}.label");
+    public string Detail => Loc.S($"type.{Key}.detail");
     public override string ToString() => Label;
 }
 
@@ -48,120 +54,50 @@ public static class Classifier
         VirtualDisks = 26, DiskImages = 27, Downloads = 28, Personal = 29, OneDrive = 30, UserOther = 31,
         Mail = 32, Archives = 33, SearchIndex = 34, Fonts = 35;
 
+    // Nome, descrizione ("cos'è") e azione ("come liberare") stanno nelle tabelle delle stringhe,
+    // sotto le chiavi cat.<chiave>.name / .desc / .action (Core\Strings.It.cs e Strings.En.cs).
     public static readonly Category[] Categories =
     [
-        C(Other, "Altro", Family.Other, Safety.Review,
-            "File e cartelle fuori dai posti standard di Windows (cartelle create a mano alla radice, ecc.).",
-            "Controlla a mano: apri la cartella e guarda cosa contiene."),
-        C(WindowsSys, "Sistema Windows", Family.Windows, Safety.Keep,
-            "Il sistema operativo: System32, SysWOW64, servizi, font, .NET, ambiente di ripristino.",
-            "Non eliminare nulla a mano. Usa Impostazioni > Sistema > Archiviazione > Consigli per la pulizia, oppure Pulizia disco (cleanmgr)."),
-        C(WinSxS, "Archivio componenti (WinSxS)", Family.Windows, Safety.Keep,
-            "Windows\\WinSxS: tutte le versioni dei componenti di sistema, comprese quelle sostituite dagli aggiornamenti. ATTENZIONE: la dimensione mostrata è lorda. Molti file sono hard link condivisi con System32, quindi lo spazio davvero occupato è inferiore (spesso la metà).",
-            "Da amministratore: Dism /Online /Cleanup-Image /AnalyzeComponentStore per la dimensione reale, poi Dism /Online /Cleanup-Image /StartComponentCleanup per pulire. Mai eliminare file a mano."),
-        C(WinUpdate, "Windows Update (download e cache)", Family.Windows, Safety.Review,
-            "Windows\\SoftwareDistribution: pacchetti di aggiornamento scaricati e il database di Windows Update.",
-            "Pulizia disco > 'Pulizia di Windows Update'. In alternativa: ferma il servizio (net stop wuauserv), svuota SoftwareDistribution\\Download, riavvia il servizio."),
-        C(WinInstaller, "Installer di Windows (MSI)", Family.Windows, Safety.Keep,
-            "Windows\\Installer: i pacchetti MSI/MSP dei programmi installati, conservati per poterli riparare o disinstallare.",
-            "Non eliminare a mano: i programmi non si disinstallerebbero più. Se è enorme, uno strumento come PatchCleaner individua i pacchetti orfani."),
-        C(WinTemp, "File temporanei di sistema", Family.Windows, Safety.Deletable,
-            "Windows\\Temp, CbsTemp e simili: file di lavoro di installazioni e aggiornamenti.",
-            "Impostazioni > Sistema > Archiviazione > File temporanei, oppure svuota Windows\\Temp (i file in uso vengono saltati)."),
-        C(Logs, "Log, dump e segnalazioni errori", Family.Windows, Safety.Deletable,
-            "Log di installazione e aggiornamento, dump di memoria (MEMORY.DMP, Minidump), Windows Error Reporting, tracce ETL.",
-            "Pulizia disco > 'File di dump della memoria' e 'File di segnalazione errori'. I file .log e .dmp si possono eliminare."),
-        C(Drivers, "Archivio driver (DriverStore)", Family.Windows, Safety.Keep,
-            "Windows\\System32\\DriverStore: tutti i driver installati, comprese le versioni vecchie (soprattutto GPU).",
-            "Non eliminare a mano. pnputil /enum-drivers elenca i pacchetti; strumenti come DriverStore Explorer rimuovono i duplicati vecchi."),
-        C(WindowsOld, "Installazione precedente (Windows.old)", Family.Windows, Safety.Deletable,
-            "La versione precedente di Windows, tenuta dieci giorni dopo un aggiornamento importante per poter tornare indietro.",
-            "Pulizia disco > 'Installazioni precedenti di Windows', oppure Impostazioni > Archiviazione > File temporanei."),
-        C(PageFile, "Memoria virtuale (pagefile.sys)", Family.System, Safety.Keep,
-            "File di paging: è l'estensione della RAM su disco. Windows ne decide la dimensione in base alla RAM.",
-            "Non eliminare. Per ridurlo: Impostazioni avanzate di sistema > Prestazioni > Memoria virtuale (meglio lasciarlo automatico)."),
-        C(Hiberfil, "Ibernazione (hiberfil.sys)", Family.System, Safety.Review,
-            "Copia della memoria RAM usata per l'ibernazione e per l'avvio rapido: è grande circa quanto la RAM.",
-            "Se non usi l'ibernazione: da amministratore 'powercfg /h off' lo elimina (perdi anche l'avvio rapido). 'powercfg /h /type reduced' lo dimezza tenendo l'avvio rapido."),
-        C(SwapFile, "Swap delle app (swapfile.sys)", Family.System, Safety.Keep,
-            "File di scambio usato dalle app di Microsoft Store. Di solito piccolo.",
-            "Gestito da Windows, non serve intervenire."),
-        C(RecycleBin, "Cestino", Family.System, Safety.Deletable,
-            "File eliminati ma non ancora rimossi dal disco ($Recycle.Bin).",
-            "Svuota il Cestino (tasto destro sull'icona > Svuota cestino)."),
-        C(RestorePoints, "Punti di ripristino e copie shadow", Family.System, Safety.Review,
-            "System Volume Information: punti di ripristino, copie shadow (versioni precedenti dei file), indice e database di sistema. Leggibile solo da amministratore.",
-            "Protezione sistema (sysdm.cpl) > Configura > 'Elimina' o riduci lo spazio riservato. Da amministratore: vssadmin delete shadows /for=C: /oldest."),
-        C(Programs, "Programmi installati", Family.Programs, Safety.Review,
-            "Program Files e Program Files (x86): i programmi installati per tutti gli utenti.",
-            "Disinstalla da Impostazioni > App > App installate quelli che non usi. Non eliminare le cartelle a mano."),
-        C(UserPrograms, "Programmi installati per l'utente", Family.Programs, Safety.Review,
-            "AppData\\Local\\Programs: programmi installati solo per il tuo utente (VS Code, Discord, Signal, ecc.).",
-            "Disinstalla da Impostazioni > App."),
-        C(StoreApps, "App di Microsoft Store e loro dati", Family.Programs, Safety.Review,
-            "WindowsApps (le app) e AppData\\Local\\Packages (dati e cache delle app dello Store e di sistema).",
-            "Disinstalla le app da Impostazioni > App. Le sottocartelle di Packages contengono i dati delle app: 'Reimposta' l'app dalle sue Opzioni avanzate."),
-        C(InstallerCache, "Cache di installer", Family.Programs, Safety.Review,
-            "ProgramData\\Package Cache (Visual Studio, .NET, SQL: installer conservati per riparazioni) e cartelle di installer estratti alla radice (NVIDIA, AMD, Intel).",
-            "Le cartelle NVIDIA/AMD/Intel alla radice si possono eliminare a installazione finita. Package Cache no: usa Visual Studio Installer per rimuovere carichi di lavoro."),
-        C(Games, "Giochi", Family.Programs, Safety.Review,
-            "Librerie di Steam, Epic Games, GOG, Xbox e cartelle 'Games'.",
-            "Disinstalla i giochi dal loro launcher (Steam > Gestisci > Disinstalla), non a mano."),
-        C(AppData, "Dati e cache delle applicazioni", Family.AppData, Safety.Review,
-            "AppData (Local, Roaming, LocalLow) e ProgramData: impostazioni, database, modelli, cache dei programmi installati.",
-            "Guarda quale applicazione pesa di più: spesso ha una cache svuotabile dalle sue impostazioni (Teams, Spotify, Slack, editor...)."),
-        C(Caches, "Cache di browser e app", Family.AppData, Safety.Deletable,
-            "Cache di Chrome, Edge, Firefox, Brave, Opera e cache di app (Code Cache, GPUCache, shader cache, INetCache).",
-            "Nel browser: Cancella dati di navigazione > 'Immagini e file memorizzati nella cache'. Le cartelle Cache si possono eliminare a programma chiuso: si ricreano."),
-        C(UserTemp, "File temporanei utente", Family.AppData, Safety.Deletable,
-            "AppData\\Local\\Temp: file di lavoro lasciati da installer e programmi.",
-            "Impostazioni > Archiviazione > File temporanei, oppure svuota %TEMP% a mano (i file in uso vengono saltati)."),
-        C(DevCaches, "Cache di pacchetti di sviluppo", Family.Dev, Safety.Deletable,
-            "Cache locali di npm, pip, NuGet, Gradle, Maven, Cargo, Go, pnpm, Yarn, uv/poetry: pacchetti scaricati, riscaricabili.",
-            "npm cache clean --force  ·  pip cache purge  ·  dotnet nuget locals all --clear  ·  yarn cache clean  ·  pnpm store prune  ·  Gradle: elimina ~\\.gradle\\caches"),
-        C(DevBuild, "Dipendenze e build dei progetti", Family.Dev, Safety.Deletable,
-            "node_modules, cartelle build/obj/.vs/_deps: si ricreano compilando o con npm install.",
-            "Elimina node_modules e le cartelle di build dei progetti che non stai usando; si rigenerano quando servono."),
-        C(GitRepos, "Repository Git (.git)", Family.Dev, Safety.Review,
-            "Cronologia completa dei repository clonati.",
-            "git gc --aggressive nel repository, oppure elimina i cloni che non ti servono più."),
-        C(DevSdk, "SDK e strumenti di sviluppo", Family.Dev, Safety.Review,
-            "Android SDK, immagini di sistema degli emulatori, toolchain, JDK.",
-            "Da SDK Manager rimuovi immagini di sistema, emulatori e versioni di piattaforma che non usi."),
-        C(VirtualDisks, "Dischi virtuali (VM, WSL, Docker)", Family.VirtualDisks, Safety.Review,
-            "File .vhdx/.vhd/.vmdk/.vdi: dischi di macchine virtuali, di WSL e di Docker Desktop. Crescono con l'uso e NON si restringono da soli quando cancelli dentro.",
-            "WSL: wsl --shutdown poi compatta il vhdx (Optimize-VHD o diskpart 'compact vdisk'). Docker: docker system prune -a. VM: compatta il disco dal gestore VM."),
-        C(DiskImages, "Immagini disco e ISO", Family.VirtualDisks, Safety.Deletable,
-            "File .iso, .img, .wim, .esd: immagini di installazione e dischi.",
-            "Elimina le ISO che hai già usato o che puoi riscaricare."),
-        C(Downloads, "Download", Family.Personal, Safety.Deletable,
-            "La cartella Download: installer, archivi e file scaricati che spesso non servono più.",
-            "Elimina gli installer (.exe/.msi) e gli archivi già usati; sposta altrove quello che vuoi tenere."),
-        C(Personal, "Documenti e file personali", Family.Personal, Safety.Review,
-            "Documenti, Immagini, Video, Musica, Desktop.",
-            "Sposta su un disco esterno o nel cloud ciò che non ti serve a portata di mano; i video sono quasi sempre la voce più pesante."),
-        C(OneDrive, "OneDrive", Family.Personal, Safety.Review,
-            "Cartella OneDrive: i file 'sempre disponibili su questo dispositivo' occupano spazio locale; quelli 'solo online' no.",
-            "Tasto destro sui file/cartelle > 'Libera spazio' per tenerli solo nel cloud."),
-        C(UserOther, "Profilo utente (altro)", Family.Personal, Safety.Review,
-            "Altre cartelle dentro C:\\Users\\<utente> (progetti, cartelle create a mano, .cache di strumenti).",
-            "Controlla a mano cosa contengono."),
-        C(Mail, "Posta di Outlook (.pst/.ost)", Family.AppData, Safety.Review,
-            "Archivi e cache della posta di Outlook.",
-            "In Outlook riduci il periodo di 'Posta da tenere offline' o archivia le cartelle vecchie."),
-        C(Archives, "Archivi compressi", Family.Other, Safety.Review,
-            "File .zip, .7z, .rar, .tar.gz sparsi.",
-            "Elimina gli archivi già estratti."),
-        C(SearchIndex, "Indice di ricerca di Windows", Family.Windows, Safety.Keep,
-            "ProgramData\\Microsoft\\Search: il database dell'indicizzazione dei file.",
-            "Non eliminare a mano. Opzioni di indicizzazione > Avanzate > Ricostruisci, o riduci le posizioni indicizzate."),
-        C(Fonts, "Font", Family.Windows, Safety.Keep,
-            "Caratteri installati (Windows\\Fonts).",
-            "Disinstalla i font che non usi da Impostazioni > Personalizzazione > Tipi di carattere."),
+        C(Other, "other", Family.Other, Safety.Review),
+        C(WindowsSys, "windowsSys", Family.Windows, Safety.Keep),
+        C(WinSxS, "winSxS", Family.Windows, Safety.Keep),
+        C(WinUpdate, "winUpdate", Family.Windows, Safety.Review),
+        C(WinInstaller, "winInstaller", Family.Windows, Safety.Keep),
+        C(WinTemp, "winTemp", Family.Windows, Safety.Deletable),
+        C(Logs, "logs", Family.Windows, Safety.Deletable),
+        C(Drivers, "drivers", Family.Windows, Safety.Keep),
+        C(WindowsOld, "windowsOld", Family.Windows, Safety.Deletable),
+        C(PageFile, "pageFile", Family.System, Safety.Keep),
+        C(Hiberfil, "hiberfil", Family.System, Safety.Review),
+        C(SwapFile, "swapFile", Family.System, Safety.Keep),
+        C(RecycleBin, "recycleBin", Family.System, Safety.Deletable),
+        C(RestorePoints, "restorePoints", Family.System, Safety.Review),
+        C(Programs, "programs", Family.Programs, Safety.Review),
+        C(UserPrograms, "userPrograms", Family.Programs, Safety.Review),
+        C(StoreApps, "storeApps", Family.Programs, Safety.Review),
+        C(InstallerCache, "installerCache", Family.Programs, Safety.Review),
+        C(Games, "games", Family.Programs, Safety.Review),
+        C(AppData, "appData", Family.AppData, Safety.Review),
+        C(Caches, "caches", Family.AppData, Safety.Deletable),
+        C(UserTemp, "userTemp", Family.AppData, Safety.Deletable),
+        C(DevCaches, "devCaches", Family.Dev, Safety.Deletable),
+        C(DevBuild, "devBuild", Family.Dev, Safety.Deletable),
+        C(GitRepos, "gitRepos", Family.Dev, Safety.Review),
+        C(DevSdk, "devSdk", Family.Dev, Safety.Review),
+        C(VirtualDisks, "virtualDisks", Family.VirtualDisks, Safety.Review),
+        C(DiskImages, "diskImages", Family.VirtualDisks, Safety.Deletable),
+        C(Downloads, "downloads", Family.Personal, Safety.Deletable),
+        C(Personal, "personal", Family.Personal, Safety.Review),
+        C(OneDrive, "oneDrive", Family.Personal, Safety.Review),
+        C(UserOther, "userOther", Family.Personal, Safety.Review),
+        C(Mail, "mail", Family.AppData, Safety.Review),
+        C(Archives, "archives", Family.Other, Safety.Review),
+        C(SearchIndex, "searchIndex", Family.Windows, Safety.Keep),
+        C(Fonts, "fonts", Family.Windows, Safety.Keep),
     ];
 
-    private static Category C(byte id, string name, Family fam, Safety s, string desc, string action) =>
-        new() { Id = id, Name = name, Family = fam, Safety = s, Description = desc, Action = action };
+    private static Category C(byte id, string key, Family fam, Safety s) =>
+        new() { Id = id, Key = key, Family = fam, Safety = s };
 
     public static Category Get(byte id) => id < Categories.Length ? Categories[id] : Categories[0];
 
@@ -501,61 +437,61 @@ public static class Classifier
 
     static Classifier()
     {
-        TypeUnknown = T("File", "File di tipo non riconosciuto");
-        TypeNoExt = T("File senza estensione", "File senza estensione");
-        void Ext(string label, string detail, params string[] exts)
+        TypeUnknown = T("unknown");
+        TypeNoExt = T("noext");
+        void Ext(string key, params string[] exts)
         {
-            ushort id = T(label, detail);
+            ushort id = T(key);
             foreach (var e in exts)
             {
                 // Una chiave doppia sovrascriverebbe in silenzio: meglio saperlo subito.
                 if (!ExtToType.TryAdd(e, id)) throw new InvalidOperationException($"Estensione dichiarata due volte nella tabella dei tipi: {e}");
             }
         }
-        TypeVirtualDisk = T("Disco virtuale", "Disco di macchina virtuale, WSL o Docker (.vhdx/.vhd/.vmdk/.vdi)");
+        TypeVirtualDisk = T("virtualdisk");
         foreach (var e in new[] { ".vhdx", ".vhd", ".avhdx", ".vmdk", ".vdi", ".qcow2", ".hdd", ".vbox-prev" }) ExtToType[e] = TypeVirtualDisk;
-        TypeDiskImage = T("Immagine disco", "Immagine di disco o di installazione (.iso/.img/.wim/.esd)");
+        TypeDiskImage = T("diskimage");
         foreach (var e in new[] { ".iso", ".img", ".wim", ".esd", ".swm", ".dmg", ".nrg", ".mds", ".cue" }) ExtToType[e] = TypeDiskImage;
-        TypeMail = T("Archivio di posta", "Archivio Outlook (.pst/.ost)");
+        TypeMail = T("mail");
         foreach (var e in new[] { ".pst", ".ost" }) ExtToType[e] = TypeMail;
-        TypeArchive = T("Archivio compresso", "Archivio compresso (.zip/.7z/.rar/.tar.gz)");
+        TypeArchive = T("archive");
         foreach (var e in new[] { ".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".xz", ".zst", ".cab", ".arj", ".lz", ".lzma", ".z" }) ExtToType[e] = TypeArchive;
-        TypeLog = T("Log", "File di registro (log)");
+        TypeLog = T("log");
         foreach (var e in new[] { ".log", ".etl", ".evtx", ".txt.log", ".trace" }) ExtToType[e] = TypeLog;
-        TypeDump = T("Dump di memoria", "Dump di memoria dopo un errore (.dmp)");
+        TypeDump = T("dump");
         foreach (var e in new[] { ".dmp", ".mdmp", ".hdmp", ".kdmp" }) ExtToType[e] = TypeDump;
         // Hive del registro e loro log transazionali: NON sono log di testo e non vanno toccati.
-        TypeRegistry = T("Registro di sistema", "Hive del registro di Windows o suo log transazionale: non eliminare");
+        TypeRegistry = T("registry");
         foreach (var e in new[] { ".hve", ".hiv", ".log1", ".log2", ".blf", ".regtrans-ms" }) ExtToType[e] = TypeRegistry;
 
         // NB: ogni estensione va dichiarata UNA volta sola (Ext lancia se doppia). ".ts" è video, non TypeScript:
         // per un analizzatore di spazio conta chi pesa. ".dat" e ".idx" sono generici e stanno in "Sistema"/"Database".
-        Ext("Video", "File video", ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".mpg", ".mpeg", ".webm", ".flv", ".ts", ".m2ts", ".mts", ".3gp", ".vob", ".ogv", ".divx", ".mxf", ".braw", ".r3d");
-        Ext("Audio", "File audio", ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".wma", ".aif", ".aiff", ".opus", ".alac", ".ape", ".dsf", ".mid", ".midi", ".wv", ".caf");
-        Ext("Progetto audio", "Progetto/sessione di software musicale", ".als", ".flp", ".cpr", ".logicx", ".ptx", ".rpp", ".song", ".reason", ".band", ".sesx", ".dawproject");
-        Ext("Campioni / librerie audio", "Librerie di suoni e campioni", ".nki", ".nkx", ".nkc", ".nkm", ".nkr", ".ncw", ".sf2", ".sfz", ".exs", ".kontakt", ".nicnt", ".soundbank", ".ufs", ".upl", ".vsn", ".rex", ".rx2");
-        Ext("Immagine", "File immagine", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".heic", ".heif", ".raw", ".cr2", ".cr3", ".nef", ".arw", ".dng", ".orf", ".rw2", ".psd", ".psb", ".ai", ".svg", ".ico", ".xcf", ".kra", ".avif", ".jxl", ".exr", ".hdr", ".tga");
-        Ext("Documento", "Documento", ".pdf", ".doc", ".docx", ".odt", ".rtf", ".xls", ".xlsx", ".ods", ".ppt", ".pptx", ".odp", ".pages", ".numbers", ".key", ".epub", ".mobi", ".azw3", ".djvu", ".one", ".xps", ".pub", ".md", ".txt", ".csv", ".tsv");
-        Ext("Programma (eseguibile)", "Programma eseguibile o installer", ".exe", ".msi", ".msix", ".msixbundle", ".appx", ".appxbundle", ".appinstaller", ".com", ".scr");
-        Ext("Libreria / componente", "Libreria di programma (DLL, componente, driver)", ".dll", ".ocx", ".drv", ".cpl", ".mui", ".winmd", ".lib", ".pdb", ".so", ".node", ".pyd", ".exp", ".ilk", ".idb", ".ipdb", ".iobj", ".obj", ".o", ".a", ".vst3", ".vst", ".clap", ".aax", ".dylib");
-        Ext("Pacchetto", "Pacchetto o modulo di programma", ".nupkg", ".jar", ".war", ".aar", ".whl", ".egg", ".gem", ".crate", ".deb", ".rpm", ".apk", ".aab", ".ipa", ".xpi", ".crx", ".vsix", ".unitypackage", ".pkg", ".snap", ".flatpak", ".pack");
-        Ext("Database", "File di database", ".db", ".sqlite", ".sqlite3", ".db3", ".mdb", ".accdb", ".mdf", ".ldf", ".ndf", ".ibd", ".frm", ".myd", ".myi", ".dbf", ".ldb", ".sdf", ".fdb", ".realm", ".edb", ".jrs", ".sst", ".ldb.bak", ".idx", ".vlog", ".mmdb", ".kdbx", ".rocksdb", ".leveldb", ".pdc");
-        Ext("Codice sorgente", "File di codice sorgente", ".c", ".cpp", ".cc", ".h", ".hpp", ".cs", ".java", ".kt", ".py", ".js", ".tsx", ".jsx", ".go", ".rs", ".rb", ".php", ".swift", ".m", ".mm", ".vb", ".fs", ".dart", ".lua", ".sh", ".ps1", ".bat", ".cmd", ".html", ".htm", ".css", ".scss", ".less", ".xaml", ".json", ".xml", ".yml", ".yaml", ".toml", ".ini", ".cfg", ".conf", ".sql", ".gradle", ".cmake", ".mk", ".map", ".mjs", ".cjs", ".vue", ".svelte", ".astro", ".graphql", ".proto");
-        Ext("Font", "Tipo di carattere", ".ttf", ".otf", ".ttc", ".woff", ".woff2", ".fon", ".pfb", ".pfm");
-        Ext("Backup", "Copia di sicurezza", ".bak", ".old", ".backup", ".bkp", ".bkf", ".tib", ".tibx", ".vbk", ".vib", ".mrimg", ".spf", ".spi", ".sna", ".ghost", ".gho", ".wbcat", ".ova", ".ovf");
-        Ext("File temporaneo", "File temporaneo o parziale", ".tmp", ".temp", ".part", ".crdownload", ".partial", ".download", ".~tmp", ".dtapart", ".!ut", ".bc!", ".swp", ".swo", ".lock");
-        Ext("Modello di IA / dati ML", "Modello o pesi di machine learning", ".gguf", ".safetensors", ".ckpt", ".pt", ".pth", ".onnx", ".h5", ".tflite", ".pb", ".ggml", ".npz", ".npy", ".pkl", ".joblib", ".parquet", ".arrow", ".feather", ".msgpack");
-        Ext("Gioco (risorse)", "Risorsa o archivio di gioco", ".pak", ".vpk", ".gcf", ".ncf", ".bsa", ".ba2", ".big", ".wad", ".pk3", ".pk4", ".forge", ".arc", ".uasset", ".umap", ".utoc", ".ucas", ".bundle", ".assets", ".resource", ".ress", ".casc", ".cache", ".archive", ".unity3d", ".xpak", ".obw", ".rpf", ".psarc", ".bnk", ".wem", ".fsb", ".bank", ".toc", ".sabs", ".sabl", ".pck", ".vfs", ".hpk", ".pac", ".paz", ".ttarch2");
-        Ext("Macchina virtuale (config)", "File di configurazione/stato di macchina virtuale", ".vmx", ".vmsn", ".vmss", ".vmem", ".nvram", ".vbox", ".sav", ".vsv", ".vmrs", ".vmcx", ".vmgs");
-        Ext("Sistema", "File di sistema", ".sys", ".efi", ".mof", ".cat", ".inf", ".manifest", ".mum", ".mun", ".pri", ".nls", ".acm", ".ax", ".tlb", ".msc", ".msp", ".msu", ".psf", ".pfx", ".cer", ".p7b", ".rll", ".dat", ".pf", ".sdb");
-        Ext("Contenitore Docker/OCI", "Livello o immagine di contenitore", ".tar.zst", ".oci");
-        Ext("Sottotitoli / testo", "Sottotitoli o testo semplice", ".srt", ".sub", ".ass", ".vtt", ".nfo", ".lrc");
-        Ext("Collegamento", "Collegamento a un altro file", ".lnk", ".url", ".appref-ms");
+        Ext("video", ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".m4v", ".mpg", ".mpeg", ".webm", ".flv", ".ts", ".m2ts", ".mts", ".3gp", ".vob", ".ogv", ".divx", ".mxf", ".braw", ".r3d");
+        Ext("audio", ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".wma", ".aif", ".aiff", ".opus", ".alac", ".ape", ".dsf", ".mid", ".midi", ".wv", ".caf");
+        Ext("audioproject", ".als", ".flp", ".cpr", ".logicx", ".ptx", ".rpp", ".song", ".reason", ".band", ".sesx", ".dawproject");
+        Ext("samples", ".nki", ".nkx", ".nkc", ".nkm", ".nkr", ".ncw", ".sf2", ".sfz", ".exs", ".kontakt", ".nicnt", ".soundbank", ".ufs", ".upl", ".vsn", ".rex", ".rx2");
+        Ext("image", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".heic", ".heif", ".raw", ".cr2", ".cr3", ".nef", ".arw", ".dng", ".orf", ".rw2", ".psd", ".psb", ".ai", ".svg", ".ico", ".xcf", ".kra", ".avif", ".jxl", ".exr", ".hdr", ".tga");
+        Ext("document", ".pdf", ".doc", ".docx", ".odt", ".rtf", ".xls", ".xlsx", ".ods", ".ppt", ".pptx", ".odp", ".pages", ".numbers", ".key", ".epub", ".mobi", ".azw3", ".djvu", ".one", ".xps", ".pub", ".md", ".txt", ".csv", ".tsv");
+        Ext("program", ".exe", ".msi", ".msix", ".msixbundle", ".appx", ".appxbundle", ".appinstaller", ".com", ".scr");
+        Ext("library", ".dll", ".ocx", ".drv", ".cpl", ".mui", ".winmd", ".lib", ".pdb", ".so", ".node", ".pyd", ".exp", ".ilk", ".idb", ".ipdb", ".iobj", ".obj", ".o", ".a", ".vst3", ".vst", ".clap", ".aax", ".dylib");
+        Ext("package", ".nupkg", ".jar", ".war", ".aar", ".whl", ".egg", ".gem", ".crate", ".deb", ".rpm", ".apk", ".aab", ".ipa", ".xpi", ".crx", ".vsix", ".unitypackage", ".pkg", ".snap", ".flatpak", ".pack");
+        Ext("database", ".db", ".sqlite", ".sqlite3", ".db3", ".mdb", ".accdb", ".mdf", ".ldf", ".ndf", ".ibd", ".frm", ".myd", ".myi", ".dbf", ".ldb", ".sdf", ".fdb", ".realm", ".edb", ".jrs", ".sst", ".ldb.bak", ".idx", ".vlog", ".mmdb", ".kdbx", ".rocksdb", ".leveldb", ".pdc");
+        Ext("source", ".c", ".cpp", ".cc", ".h", ".hpp", ".cs", ".java", ".kt", ".py", ".js", ".tsx", ".jsx", ".go", ".rs", ".rb", ".php", ".swift", ".m", ".mm", ".vb", ".fs", ".dart", ".lua", ".sh", ".ps1", ".bat", ".cmd", ".html", ".htm", ".css", ".scss", ".less", ".xaml", ".json", ".xml", ".yml", ".yaml", ".toml", ".ini", ".cfg", ".conf", ".sql", ".gradle", ".cmake", ".mk", ".map", ".mjs", ".cjs", ".vue", ".svelte", ".astro", ".graphql", ".proto");
+        Ext("font", ".ttf", ".otf", ".ttc", ".woff", ".woff2", ".fon", ".pfb", ".pfm");
+        Ext("backup", ".bak", ".old", ".backup", ".bkp", ".bkf", ".tib", ".tibx", ".vbk", ".vib", ".mrimg", ".spf", ".spi", ".sna", ".ghost", ".gho", ".wbcat", ".ova", ".ovf");
+        Ext("temp", ".tmp", ".temp", ".part", ".crdownload", ".partial", ".download", ".~tmp", ".dtapart", ".!ut", ".bc!", ".swp", ".swo", ".lock");
+        Ext("ml", ".gguf", ".safetensors", ".ckpt", ".pt", ".pth", ".onnx", ".h5", ".tflite", ".pb", ".ggml", ".npz", ".npy", ".pkl", ".joblib", ".parquet", ".arrow", ".feather", ".msgpack");
+        Ext("game", ".pak", ".vpk", ".gcf", ".ncf", ".bsa", ".ba2", ".big", ".wad", ".pk3", ".pk4", ".forge", ".arc", ".uasset", ".umap", ".utoc", ".ucas", ".bundle", ".assets", ".resource", ".ress", ".casc", ".cache", ".archive", ".unity3d", ".xpak", ".obw", ".rpf", ".psarc", ".bnk", ".wem", ".fsb", ".bank", ".toc", ".sabs", ".sabl", ".pck", ".vfs", ".hpk", ".pac", ".paz", ".ttarch2");
+        Ext("vmconfig", ".vmx", ".vmsn", ".vmss", ".vmem", ".nvram", ".vbox", ".sav", ".vsv", ".vmrs", ".vmcx", ".vmgs");
+        Ext("system", ".sys", ".efi", ".mof", ".cat", ".inf", ".manifest", ".mum", ".mun", ".pri", ".nls", ".acm", ".ax", ".tlb", ".msc", ".msp", ".msu", ".psf", ".pfx", ".cer", ".p7b", ".rll", ".dat", ".pf", ".sdb");
+        Ext("container", ".tar.zst", ".oci");
+        Ext("subtitles", ".srt", ".sub", ".ass", ".vtt", ".nfo", ".lrc");
+        Ext("shortcut", ".lnk", ".url", ".appref-ms");
     }
 
-    private static ushort T(string label, string detail)
+    private static ushort T(string key)
     {
-        var t = new FileType { Id = (ushort)Types.Count, Label = label, Detail = detail };
+        var t = new FileType { Id = (ushort)Types.Count, Key = key };
         Types.Add(t);
         return t.Id;
     }
@@ -570,7 +506,7 @@ public static class Classifier
         if (f.TypeId == TypeUnknown)
         {
             string ext = f.Extension;
-            return ext.Length > 0 ? $"File {ext} (tipo non riconosciuto)" : t.Detail;
+            return ext.Length > 0 ? Loc.S("type.unknown.ext", ext) : t.Detail;
         }
         return t.Detail;
     }
