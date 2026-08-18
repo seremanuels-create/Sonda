@@ -2,7 +2,14 @@
 
 *[Read in English](README.md)*
 
+[![Release](https://img.shields.io/github/v/release/seremanuels-create/sonda?label=download&color=2a78d6)](https://github.com/seremanuels-create/sonda/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/seremanuels-create/sonda/total?color=1baf7a)](https://github.com/seremanuels-create/sonda/releases)
+[![Build](https://github.com/seremanuels-create/sonda/actions/workflows/build.yml/badge.svg)](https://github.com/seremanuels-create/sonda/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
+
 Analizzatore dello spazio su disco per Windows: dice **cosa** occupa spazio, **dove** sta, **cos'è** e **come si libera**, mettendo la causa principale in primo piano e tutte le altre in ordine di peso.
+
+Un'alternativa libera e open source a WinDirStat, TreeSize e WizTree — con una differenza: non si limita a mostrarti una mappa, ti dice qual è la causa e cosa farci.
 
 Non è l'ennesimo albero di cartelle: ogni file viene classificato in una *causa* (giochi, cache dei browser, dipendenze dei progetti, punti di ripristino, ibernazione…) con una spiegazione in italiano e un livello di sicurezza — **eliminabile**, **da valutare**, **non toccare**.
 

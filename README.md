@@ -2,7 +2,14 @@
 
 *[Leggi in italiano](README.it.md)*
 
+[![Release](https://img.shields.io/github/v/release/seremanuels-create/sonda?label=download&color=2a78d6)](https://github.com/seremanuels-create/sonda/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/seremanuels-create/sonda/total?color=1baf7a)](https://github.com/seremanuels-create/sonda/releases)
+[![Build](https://github.com/seremanuels-create/sonda/actions/workflows/build.yml/badge.svg)](https://github.com/seremanuels-create/sonda/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
+
 A disk space analyser for Windows that tells you **what** is using the space, **where** it lives, **what it is** and **how to free it** — putting the main cause in the foreground and every other cause right behind it, heaviest first.
+
+A free, open-source alternative to WinDirStat, TreeSize and WizTree — with one difference: it does not just show you a treemap, it names the cause and tells you what to do about it.
 
 It is not yet another folder tree: every file is sorted into a *cause* (games, browser caches, project dependencies, restore points, hibernation…) with a plain-language explanation and a safety level — **safe to delete**, **your call**, **leave alone**.
 
