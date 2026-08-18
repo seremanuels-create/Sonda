@@ -1,0 +1,17 @@
+# Normalizza i fine riga: LF nel repository, CRLF al checkout su Windows
+* text=auto
+
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.md      text
+*.txt     text
+*.ps1     text eol=crlf
+*.cmd     text eol=crlf
+*.iss     text eol=crlf
+*.manifest text
+
+*.ico     binary
+*.png     binary
+*.exe     binary
+*.zip     binary

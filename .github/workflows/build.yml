@@ -1,0 +1,28 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Compila (portable single-file)
+        run: .\build.ps1 -SoloPortable
+        shell: pwsh
+
+      - name: Carica l'eseguibile come artefatto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonda-portable
+          path: dist/portable/Sonda.exe
+          if-no-files-found: error

@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Sonda: analizzatore dello spazio su disco per Windows.
+    App WPF su .NET 9. Si compila con .\build.ps1 (portable single-file + installer Inno).
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Sonda</RootNamespace>
+    <AssemblyName>Sonda</AssemblyName>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>it;en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- Metadati completi della risorsa di versione (vedi FIRMA-E-ANTIVIRUS.md dei plugin) -->
+    <!-- Un solo numero: FileVersion/AssemblyVersion li deriva l'SDK, build.ps1 lo legge da qui per l'installer -->
+    <Version>1.0.0</Version>
+    <Product>Sonda</Product>
+    <Company>StarVerb Audio</Company>
+    <Authors>StarVerb Audio</Authors>
+    <Copyright>Copyright (C) 2026 StarVerb Audio</Copyright>
+    <Description>Sonda - analisi dello spazio occupato sul disco</Description>
+    <NeutralLanguage>it-IT</NeutralLanguage>
+
+    <!-- Publish: single-file self-contained, deciso da build.ps1 con -p: ma i default stanno qui -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <DebugType>embedded</DebugType>
+    <TieredPGO>true</TieredPGO>
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\icon.ico" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WMI per le copie shadow (Win32_ShadowStorage) -->
+    <PackageReference Include="System.Management" Version="9.0.8" />
+  </ItemGroup>
+
+</Project>
+

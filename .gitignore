@@ -1,0 +1,24 @@
+# Build .NET
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+
+# Artefatti di build.ps1 (portable, zip, installer): stanno nelle Release di GitHub, non nel repo
+dist/
+
+# Output di Inno Setup se compilato a mano
+Installer/Output/
+
+# Rapporti ed esportazioni di prova
+*.csv
+Sonda-*.txt
+shot-*.png
+
+# Sistema
+Thumbs.db
+desktop.ini

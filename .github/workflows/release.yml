@@ -1,0 +1,30 @@
+# Pubblica una Release quando si crea un tag "v1.2.3": compila il portable e ne allega lo zip.
+# L'installer Inno va allegato a mano (serve Inno Setup, non preinstallato sui runner).
+name: release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Compila (portable single-file)
+        run: .\build.ps1 -SoloPortable
+        shell: pwsh
+
+      - name: Crea la Release e allega lo zip
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Sonda-*-portable.zip
+          generate_release_notes: true
