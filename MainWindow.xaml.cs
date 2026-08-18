@@ -613,9 +613,12 @@ public partial class MainWindow : Window
             var cur = _currentDir;
             var back = _back.ToArray();
             PopulateAll();
-            // torna dov'eri, tenendo nello stack solo le cartelle che esistono ancora
+            // Torna dov'eri, tenendo nello stack solo le cartelle che esistono ancora.
+            // Ciclo all'indietro invece di back.Reverse(): su un array quella chiamata può risolversi a
+            // MemoryExtensions.Reverse (che ordina sul posto e restituisce void) invece che a Enumerable.Reverse,
+            // e allora non compila nemmeno. ToArray() di uno Stack dà dalla cima al fondo: si ripusha dal fondo.
             _back.Clear();
-            foreach (var b in back.Reverse()) if (StillInTree(b)) _back.Push(b);
+            for (int i = back.Length - 1; i >= 0; i--) if (StillInTree(back[i])) _back.Push(back[i]);
             if (cur is not null && StillInTree(cur)) NavigateTo(cur, push: false);
         }
         catch (Exception ex) { StatusText.Text = Loc.S("del.recalcError", ex.Message); }
