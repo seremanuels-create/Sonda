@@ -1,7 +1,9 @@
-# Pubblica una Release quando si crea un tag "v1.2.3": compila il portable, ne allega lo zip
-# e ne genera un'attestazione di provenienza (prova firmata che quel binario viene da questo
-# commit e da questa build, verificabile con: gh attestation verify <file> --repo <owner>/<repo>).
-# L'installer Inno va allegato a mano (Inno Setup non e' preinstallato sui runner).
+# Pubblica una Release quando si crea un tag "v1.2.3".
+#
+# Tutto quello che finisce nella Release viene compilato QUI, non su un PC personale, e porta
+# un'attestazione di provenienza firmata (Sigstore): chiunque puo' verificare che il binario
+# scaricato e' uscito da questo repository e da questo commit, con
+#     gh attestation verify <file> --repo <owner>/<repo>
 name: release
 
 on:
@@ -23,23 +25,29 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Compila (portable single-file)
-        run: .\build.ps1 -SoloPortable
+      - name: Installa Inno Setup (per l'installer)
+        run: choco install innosetup --no-progress -y
         shell: pwsh
 
-      - name: Attestazione di provenienza
+      - name: Compila portable e installer
+        run: .\build.ps1
+        shell: pwsh
+
+      - name: Attestazione di provenienza (eseguibile e installer)
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: dist/portable/Sonda.exe
+          subject-path: |
+            dist/portable/Sonda.exe
+            dist/Sonda-*-Setup.exe
 
       - name: Impronte SHA-256
         shell: pwsh
         run: |
-          $lines = Get-ChildItem dist -Filter *.zip | ForEach-Object {
+          $files = @(Get-ChildItem dist -File -Include *.zip, *.exe -Recurse | Where-Object { $_.DirectoryName -eq (Resolve-Path dist).Path })
+          $files += Get-Item dist/portable/Sonda.exe
+          $files | ForEach-Object {
               "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
-          }
-          $lines += "$((Get-FileHash dist/portable/Sonda.exe -Algorithm SHA256).Hash.ToLower())  Sonda.exe"
-          $lines | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          } | Set-Content dist/SHA256SUMS.txt -Encoding ascii
           Get-Content dist/SHA256SUMS.txt
 
       - name: Crea la Release e allega i file
@@ -47,5 +55,6 @@ jobs:
         with:
           files: |
             dist/Sonda-*-portable.zip
+            dist/Sonda-*-Setup.exe
             dist/SHA256SUMS.txt
           generate_release_notes: true
